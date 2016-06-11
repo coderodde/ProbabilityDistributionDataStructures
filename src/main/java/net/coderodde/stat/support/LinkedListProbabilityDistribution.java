@@ -6,12 +6,13 @@ import java.util.Random;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 
 /**
- * This class implements a probability distribution relying on an array of 
- * elements. The running times are as follows:
+ * This class implements a probability distribution relying on a linked list.
+ * The running times of the main methods are as follows:
  * 
  * <table>
  * <tr><td>Method</td>  <td>Complexity</td></tr>
- * <tr><td><tt>addElement   </tt> </td>  <td><tt>O(1)</tt>,</td></tr>
+ * <tr><td><tt>addElement   </tt> </td>  
+ *     <td><tt>amortized constant time</tt>,</td></tr>
  * <tr><td><tt>sampleElement</tt> </td>  <td><tt>O(n)</tt>,</td></tr>
  * <tr><td><tt>removeElement</tt> </td>  <td><tt>O(1)</tt>.</td></tr>
  * </table>
@@ -97,6 +98,9 @@ extends AbstractProbabilityDistribution<E> {
         super(random);
     }
     
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public void addElement(final E element, final double weight) {
         checkWeight(weight);
@@ -116,8 +120,12 @@ extends AbstractProbabilityDistribution<E> {
         this.totalWeight += weight;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public E sampleElement() {
+        checkNotEmpty();
         double value = this.random.nextDouble() * this.totalWeight;
         
         for (LinkedListNode<E> node = linkedListHead;

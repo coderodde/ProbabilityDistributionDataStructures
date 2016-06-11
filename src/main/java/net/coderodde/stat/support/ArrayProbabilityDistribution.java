@@ -12,7 +12,7 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  * <tr><td>Method</td>  <td>Complexity</td></tr>
  * <tr><td><tt>addElement   </tt> </td>  <td>amortized constant time,</td></tr>
  * <tr><td><tt>sampleElement</tt> </td>  <td><tt>O(n)</tt>,</td></tr>
- * <tr><td><tt>removeElement</tt> </td>  <td><tt>O(n)</tt>,</td></tr>
+ * <tr><td><tt>removeElement</tt> </td>  <td><tt>O(n)</tt>.</td></tr>
  * </table>
  * 
  * @param <E> the actual type of the elements stored in this probability 
@@ -52,18 +52,17 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public E sampleElement() {
         checkNotEmpty();
-        final double value = this.totalWeight * this.random.nextDouble();
-        double sum = 0.0;
+        double value = this.random.nextDouble() * this.totalWeight;
         
         for (int i = 0; i < this.size; ++i) {
-            sum += this.weightStorageArray[i];
-            
-            if (sum >= value) {
+            if (value < this.weightStorageArray[i]) {
                 return (E) this.objectStorageArray[i];
             }
+            
+            value -= this.weightStorageArray[i];
         }
         
-        throw new IllegalStateException("This should not happen.");
+        throw new IllegalStateException("Should not get here.");
     }
 
     @Override
