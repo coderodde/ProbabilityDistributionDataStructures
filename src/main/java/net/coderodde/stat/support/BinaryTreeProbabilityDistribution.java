@@ -1,9 +1,11 @@
 package net.coderodde.stat.support;
 
-import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 
 /**
@@ -66,6 +68,16 @@ extends AbstractProbabilityDistribution<E> {
             this.isRelayNode = true;
         }
         
+        public String toString() {
+            if (this.isRelayNode) {
+                return "[" + String.format("%.3f", this.getWeight()) +
+                       " : " + this.numberOfLeafNodes + "]";
+            }
+            
+            return "(" + String.format("%.3f", this.getWeight()) + 
+                   " : " + this.element + ")";
+        }
+        
         E getElement() {
             return this.element;
         }
@@ -122,7 +134,7 @@ extends AbstractProbabilityDistribution<E> {
     /**
      * Maps each element to the list of nodes representing the element.
      */
-    private final Map<E, List<Node<E>>> map = new HashMap<>();
+    private final Map<E, Node<E>> map = new HashMap<>();
     
     /**
      * The root node of this distribution tree.
@@ -130,39 +142,98 @@ extends AbstractProbabilityDistribution<E> {
     private Node<E> root;
     
     /**
+     * Constructs this probability distribution using a default random number
+     * generator.
+     */
+    public BinaryTreeProbabilityDistribution() {
+        this(new Random());
+    }
+    
+    /**
+     * Constructs this probability distribution using the input random number
+     * generator.
+     * 
+     * @param random the random number generator to use. 
+     */
+    public BinaryTreeProbabilityDistribution(final Random random) {
+        super(random);
+    }
+    
+    /**
      * {@inheritDoc }
      */
     @Override
-    public void addElement(E element, double weight) {
+    public boolean addElement(E element, double weight) {
         checkWeight(weight);
-        final Node<E> newnode = new Node<>(element, weight);
-        List<Node<E>> nodeList = this.map.get(element);
         
-        if (nodeList == null) {
-            nodeList = new ArrayList<>();
-            this.map.put(element, nodeList);
-        } 
-            
-        nodeList.add(newnode);
-        insert(newnode);
-        this.size++;
-        this.totalWeight += weight;
-    }
-
-    @Override
-    public boolean removeElement(final E element) {
-        final List<Node<E>> nodeList = this.map.get(element);
-        
-        if (nodeList == null) {
+        if (this.map.containsKey(element)) {
             return false;
         }
         
-        final Node<E> node = removeLast(nodeList);
+        final Node<E> newnode = new Node<>(element, weight);
+        insert(newnode);
+        this.size++;
+        this.totalWeight += weight;
+        this.map.put(element, newnode);
+        return true;
+    }
+    
+    /**
+     * {@inheritDoc } 
+     */
+    @Override
+    public boolean contains(E element) {
+        return this.map.containsKey(element);
+    }
+    
+    /**
+     * {@inheritDoc } 
+     */
+    @Override
+    public E sampleElement() {
+        checkNotEmpty();
+        
+        double value = this.totalWeight * this.random.nextDouble();
+        Node<E> node = root;
+        
+        while (node.isRelayNode()) {
+            if (value < node.getLeftChild().getWeight()) {
+                node = node.getLeftChild();
+            } else {
+                value -= node.getLeftChild().getWeight();
+                node = node.getRightChild();
+            }
+        }
+        
+        return node.getElement();
+    }
+    
+    /**
+     * {@inheritDoc } 
+     */
+    @Override
+    public boolean removeElement(final E element) {
+        final Node<E> node = this.map.get(element);
+        
+        if (node == null) {
+            return false;
+        }
+        
         delete(node);
         updateMetadata(node.getParent(), -node.getWeight(), -1);
         this.size--;
         this.totalWeight -= node.getWeight();
         return true;
+    }
+
+    /**
+     * {@inheritDoc } 
+     */
+    @Override
+    public void clear() {
+        this.root = null;
+        this.size = 0;
+        this.totalWeight = 0.0;
     }
 
     /**
@@ -217,42 +288,6 @@ extends AbstractProbabilityDistribution<E> {
         }
         
         bypassLeafNode(currentNode, node);
-        
-//        if (root.getLeftChild() == null) {
-//            root.setLeftChild(node);
-//            node.setParent(root);
-//            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
-//            root.setWeight(root.getWeight() + node.getWeight());
-//            return;
-//        }
-//        
-//        if (root.getRightChild() == null) {
-//            root.setRightChild(node);
-//            node.setParent(root);
-//            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
-//            root.setWeight(root.getWeight() + node.getWeight());
-//            return;
-//        }
-//        
-//        Node<E> currentNode = root;
-//        
-//        while (true) {
-//            if (currentNode.isLeafNode()) {
-//                break;
-//            }
-//            
-//            // Once here, 'currentNode' has both children. Choose the one that
-//            // contains the smaller number of nodes in order to keep the tree
-//            // balanced:
-//            if (currentNode.leftChild.getNumberOfLeaves() 
-//                    < currentNode.rightChild.getNumberOfLeaves()) {
-//                currentNode = currentNode.getLeftChild();
-//            } else {
-//                currentNode = currentNode.getRightChild();
-//            }
-//        }
-//        
-//        bypassLeafNode(currentNode, node);
     }
     
     private void delete(final Node<E> leafToDelete) {
@@ -303,34 +338,48 @@ extends AbstractProbabilityDistribution<E> {
         }
     }
     
-    private Node<E> removeLast(final List<Node<E>> list) {
-        return list.remove(list.size() - 1);
-    }
-    
-    @Override
-    public E sampleElement() {
-        checkNotEmpty();
-        
-        double value = this.totalWeight * this.random.nextDouble();
-        Node<E> node = root;
-        
-        while (node.isRelayNode()) {
-            if (value < node.getLeftChild().getWeight()) {
-                node = node.getLeftChild();
-            } else {
-                node = node.getRightChild();
-                value -= node.getLeftChild().getWeight();
-            }
+    public String debugToString() {
+        if (root == null) {
+            return "empty";
         }
         
-        return node.getElement();
+        final StringBuilder sb = new StringBuilder();
+        final int treeHeight = getTreeHeight(root);
+        final Deque<Node<E>> queue = new LinkedList<>();
+        queue.addLast(root);
+        
+        for (int i = 0; i < treeHeight + 1; ++i) {
+            int currentQueueLength = queue.size();
+            
+            for (int j = 0; j < currentQueueLength; ++j) {
+                final Node<E> node = queue.removeFirst();
+                addChildren(node, queue);
+                sb.append(node == null ? "null" : node.toString()).append(" ");
+            }
+            
+            sb.append("\n");
+        }
+        
+        return sb.toString();
     }
-
-    @Override
-    public void clear() {
-        this.root.setLeftChild(null);
-        this.root.setRightChild(null);
-        this.size = 0;
-        this.totalWeight = 0.0;
+    
+    private void addChildren(final Node<E> node, final Deque<Node<E>> queue) {
+        if (node == null) {
+            queue.addLast(null);
+            queue.addLast(null);
+            return;
+        }
+        
+        queue.addLast(node.getLeftChild());
+        queue.addLast(node.getRightChild());
+    }
+    
+    private int getTreeHeight(final Node<E> node) {
+        if (node == null) {
+            return -1;
+        }
+        
+        return 1 + Math.max(getTreeHeight(node.getLeftChild()),
+                            getTreeHeight(node.getRightChild()));
     }
 }

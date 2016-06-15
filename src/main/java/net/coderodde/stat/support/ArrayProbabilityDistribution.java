@@ -1,7 +1,9 @@
 package net.coderodde.stat.support;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 
 /**
@@ -28,6 +30,7 @@ extends AbstractProbabilityDistribution<E> {
     
     private Object[] objectStorageArray;
     private double[] weightStorageArray;
+    private final Set<E> filterSet = new HashSet<>();
     
     public ArrayProbabilityDistribution() {
         this(new Random());
@@ -39,16 +42,30 @@ extends AbstractProbabilityDistribution<E> {
         this.weightStorageArray = new double[DEFAULT_STORAGE_ARRAYS_CAPACITY];
     }
     
+    /**
+     * {@inheritDoc } 
+     */
     @Override
-    public void addElement(final E element, final double weight) {
+    public boolean addElement(final E element, final double weight) {
         checkWeight(weight);
+        
+        if (filterSet.contains(element)) {
+            // 'element' is already present in this probability distribution.
+            return false;
+        }
+        
         ensureCapacity(this.size + 1);
         objectStorageArray[this.size] = element;
         weightStorageArray[this.size] = weight; 
         this.totalWeight += weight;
         this.size++;
+        this.filterSet.add(element);
+        return true;
     }
 
+    /**
+     * {@inheritDoc } 
+     */
     @Override
     public E sampleElement() {
         checkNotEmpty();
@@ -65,14 +82,16 @@ extends AbstractProbabilityDistribution<E> {
         throw new IllegalStateException("Should not get here.");
     }
 
+    /**
+     * {@inheritDoc } 
+     */
     @Override
     public boolean removeElement(final E element) {
-        final int index = indexOf(element);
-        
-        if (index < 0) {
+        if (!this.filterSet.contains(element)) {
             return false;
         }
         
+        final int index = indexOf(element);
         this.totalWeight -= this.weightStorageArray[index];
         
         for (int j = index + 1; j < this.size; ++j) {
@@ -84,6 +103,9 @@ extends AbstractProbabilityDistribution<E> {
         return true;
     }
     
+    /**
+     * {@inheritDoc } 
+     */
     @Override
     public void clear() {
         for (int i = 0; i < this.size; ++i) {
@@ -92,6 +114,14 @@ extends AbstractProbabilityDistribution<E> {
         
         this.size = 0; 
         this.totalWeight = 0.0;
+    }
+
+    /**
+     * {@inheritDoc } 
+     */
+    @Override
+    public boolean contains(E element) {
+        return this.filterSet.contains(element);
     }
     
     private int indexOf(final E element) {

@@ -68,7 +68,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      * @param element the element to add.
      * @param weight  the weight of the new element.
      */
-    public abstract void addElement(final E element, final double weight);
+    public abstract boolean addElement(final E element, final double weight);
     
     /**
      * Returns a randomly chosen element from this probability distribution 
@@ -77,6 +77,16 @@ public abstract class AbstractProbabilityDistribution<E> {
      * @return a randomly chosen element.
      */
     public abstract E sampleElement();
+    
+    /**
+     * Returns {@code true} if this probability distribution contains the
+     * element {@code element}.
+     * 
+     * @param element the element to query.
+     * @return {@code true} if the input element is in this probability 
+     *         distribution; {@code false} otherwise.
+     */
+    public abstract boolean contains(final E element);
     
     /**
      * Removes the element {@code element} from this probability distribution.

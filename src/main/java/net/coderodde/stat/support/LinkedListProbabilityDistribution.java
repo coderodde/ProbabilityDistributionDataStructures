@@ -102,8 +102,13 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc }
      */
     @Override
-    public void addElement(final E element, final double weight) {
+    public boolean addElement(final E element, final double weight) {
         checkWeight(weight);
+        
+        if (this.map.containsKey(element)) {
+            return false;
+        }
+        
         final LinkedListNode<E> newnode = new LinkedListNode<>(element, weight);
         
         if (linkedListHead == null) {
@@ -118,6 +123,7 @@ extends AbstractProbabilityDistribution<E> {
         this.map.put(element, newnode);
         this.size++;
         this.totalWeight += weight;
+        return true;
     }
 
     /**
@@ -140,7 +146,18 @@ extends AbstractProbabilityDistribution<E> {
         
         throw new IllegalStateException("Should not get here.");
     }
-
+    
+    /**
+     * {@inheritDoc } 
+     */
+    @Override
+    public boolean contains(E element) {
+        return this.map.containsKey(element);
+    }
+    
+    /**
+     * {@inheritDoc } 
+     */
     @Override
     public boolean removeElement(E element) {
         final LinkedListNode<E> node = map.get(element);
@@ -156,6 +173,9 @@ extends AbstractProbabilityDistribution<E> {
         return true;
     }
     
+    /**
+     * {@inheritDoc } 
+     */
     @Override
     public void clear() {
         this.size = 0;
