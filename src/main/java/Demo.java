@@ -4,26 +4,39 @@ import java.util.List;
 import java.util.Random;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 import net.coderodde.stat.support.ArrayProbabilityDistribution;
+import net.coderodde.stat.support.BinaryTreeProbabilityDistribution;
 import net.coderodde.stat.support.LinkedListProbabilityDistribution;
 
 public class Demo {
 
     public static void main(final String[] args) {
-        System.out.println("[STATUS] Warming up...");
-        warmup();
-        System.out.println("[STATUS] Warming up done!");
+        AbstractProbabilityDistribution<Integer> dist = 
+                new BinaryTreeProbabilityDistribution<>();
+        
+        for (int i = 0; i < 5; ++i) {
+            dist.addElement(i, 0.1 * (i + 1));
+        }
+        
+        System.out.println("yo!");
+//        System.out.println("[STATUS] Warming up...");
+//        warmup();
+//        System.out.println("[STATUS] Warming up done!");
     }
     
     private static void warmup() {
         final long seed =35214717058750L; System.nanoTime();
         final Random inputRandom1 = new Random(seed);
         final Random inputRandom2 = new Random(seed);
+        final Random inputRandom3 = new Random(seed);
         
         final AbstractProbabilityDistribution<Integer> pd1 = 
              new ArrayProbabilityDistribution<>(inputRandom1);
         
         final AbstractProbabilityDistribution<Integer> pd2 = 
              new LinkedListProbabilityDistribution<>(inputRandom2);
+        
+        final AbstractProbabilityDistribution<Integer> pd3 =
+             new BinaryTreeProbabilityDistribution<>();
         
         final Random random = new Random(seed);
         final List<Integer> content = new ArrayList<>();
@@ -41,6 +54,7 @@ public class Demo {
                 
                 pd1.addElement(element, weight);
                 pd2.addElement(element, weight);
+                pd3.addElement(element, weight);
             } else if (coin < 0.5) {
                 // Remove an element.
                 if (!pd1.isEmpty()) {
@@ -48,6 +62,7 @@ public class Demo {
 
                     pd1.removeElement(element);
                     pd2.removeElement(element);
+                    pd3.removeElement(element);
                     content.remove(element);
                 }
             } else if (!pd1.isEmpty()) {
@@ -60,6 +75,8 @@ public class Demo {
                             "Identical probability distributions disagreed: " +
                             element1 + " vs. " + element2);
                 }
+                
+                final Integer element3 = pd3.sampleElement();
             }
         }
     }

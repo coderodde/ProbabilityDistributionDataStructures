@@ -12,8 +12,9 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  * 
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Jun 11, 2016)
+ * @param <E> the actual type of the elements stored in this distribution.
  */
-public class HierarchicalProbabilityDistribution<E>
+public class BinaryTreeProbabilityDistribution<E>
 extends AbstractProbabilityDistribution<E> {
 
     private static final class Node<E> {
@@ -56,6 +57,8 @@ extends AbstractProbabilityDistribution<E> {
         
         Node(final E element, final double weight) {
             this.element = element;
+            this.weight  = weight;
+            this.numberOfLeafNodes = 1;
         }   
         
         Node() {
@@ -124,7 +127,7 @@ extends AbstractProbabilityDistribution<E> {
     /**
      * The root node of this distribution tree.
      */
-    private final Node<E> root = new Node<>();
+    private Node<E> root;
     
     /**
      * {@inheritDoc }
@@ -141,7 +144,7 @@ extends AbstractProbabilityDistribution<E> {
         } 
             
         nodeList.add(newnode);
-        insert(newnode, root);
+        insert(newnode);
         this.size++;
         this.totalWeight += weight;
     }
@@ -155,50 +158,13 @@ extends AbstractProbabilityDistribution<E> {
         }
         
         final Node<E> node = removeLast(nodeList);
-        
+        delete(node);
+        updateMetadata(node.getParent(), -node.getWeight(), -1);
         this.size--;
         this.totalWeight -= node.getWeight();
         return true;
     }
 
-    private void insert(final Node<E> node, final Node<E> root) {
-        if (root.getLeftChild() == null) {
-            root.setLeftChild(node);
-            node.setParent(root);
-            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
-            root.setWeight(root.getWeight() + node.getWeight());
-            return;
-        }
-        
-        if (root.getRightChild() == null) {
-            root.setRightChild(node);
-            node.setParent(root);
-            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
-            root.setWeight(root.getWeight() + node.getWeight());
-            return;
-        }
-        
-        Node<E> currentNode = root;
-        
-        while (true) {
-            if (currentNode.isLeafNode()) {
-                break;
-            }
-            
-            // Once here, 'currentNode' has both children. Choose the one that
-            // contains the smaller number of nodes in order to keep the tree
-            // balanced:
-            if (currentNode.leftChild.getNumberOfLeaves() 
-                    < currentNode.rightChild.getNumberOfLeaves()) {
-                currentNode = currentNode.getLeftChild();
-            } else {
-                currentNode = currentNode.getRightChild();
-            }
-        }
-        
-        bypassLeafNode(currentNode, node);
-    }
-    
     /**
      * Assuming that {@code leafNodeToBypass} is a leaf node, this procedure 
      * attaches a relay node instead of it, and assigns {@code leafNodeToBypass}
@@ -212,18 +178,109 @@ extends AbstractProbabilityDistribution<E> {
         final Node<E> relayNode = new Node<>();
         final Node<E> parentOfCurrentNode = leafNodeToBypass.getParent();
         
+        relayNode.setNumberOfLeaves(1);
+        relayNode.setWeight(leafNodeToBypass.getWeight());
         relayNode.setLeftChild(leafNodeToBypass);
         relayNode.setRightChild(newNode);
         
         leafNodeToBypass.setParent(relayNode);
         newNode.setParent(relayNode);
-        relayNode.setParent(parentOfCurrentNode);
-        
-        if (parentOfCurrentNode.getLeftChild() == leafNodeToBypass) {
+
+        if (parentOfCurrentNode == null) {
+            this.root = relayNode;
+        } else if (parentOfCurrentNode.getLeftChild() == leafNodeToBypass) {
+            relayNode.setParent(parentOfCurrentNode);
             parentOfCurrentNode.setLeftChild(relayNode);
         } else {
+            relayNode.setParent(parentOfCurrentNode);
             parentOfCurrentNode.setRightChild(relayNode);
         }
+        
+        updateMetadata(relayNode, newNode.getWeight(), 1);
+    }
+    
+    private void insert(final Node<E> node) {
+        if (root == null) {
+            root = node;
+            return;
+        }
+        
+        Node<E> currentNode = root;
+        
+        while (currentNode.isRelayNode()) {
+            if (currentNode.getLeftChild().getNumberOfLeaves() < 
+                    currentNode.getRightChild().getNumberOfLeaves()) {
+                currentNode = currentNode.getLeftChild();
+            } else {
+                currentNode = currentNode.getRightChild();
+            }
+        }
+        
+        bypassLeafNode(currentNode, node);
+        
+//        if (root.getLeftChild() == null) {
+//            root.setLeftChild(node);
+//            node.setParent(root);
+//            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
+//            root.setWeight(root.getWeight() + node.getWeight());
+//            return;
+//        }
+//        
+//        if (root.getRightChild() == null) {
+//            root.setRightChild(node);
+//            node.setParent(root);
+//            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
+//            root.setWeight(root.getWeight() + node.getWeight());
+//            return;
+//        }
+//        
+//        Node<E> currentNode = root;
+//        
+//        while (true) {
+//            if (currentNode.isLeafNode()) {
+//                break;
+//            }
+//            
+//            // Once here, 'currentNode' has both children. Choose the one that
+//            // contains the smaller number of nodes in order to keep the tree
+//            // balanced:
+//            if (currentNode.leftChild.getNumberOfLeaves() 
+//                    < currentNode.rightChild.getNumberOfLeaves()) {
+//                currentNode = currentNode.getLeftChild();
+//            } else {
+//                currentNode = currentNode.getRightChild();
+//            }
+//        }
+//        
+//        bypassLeafNode(currentNode, node);
+    }
+    
+    private void delete(final Node<E> leafToDelete) {
+        final Node<E> relayNode = leafToDelete.getParent();
+        
+        if (relayNode == null) {
+            this.root = null;
+            return;
+        } 
+        
+        final Node<E> parentOfRelayNode = relayNode.getParent();
+        final Node<E> siblingLeaf = relayNode.getLeftChild() == leafToDelete ?
+                                    relayNode.getRightChild() :
+                                    relayNode.getLeftChild();
+        
+        if (parentOfRelayNode == null) {
+            this.root = siblingLeaf;
+            siblingLeaf.setParent(null);
+            return;
+        }
+        
+        if (parentOfRelayNode.getLeftChild() == relayNode) {
+            parentOfRelayNode.setLeftChild(siblingLeaf);
+        } else {
+            parentOfRelayNode.setRightChild(siblingLeaf);
+        }
+        
+        siblingLeaf.setParent(parentOfRelayNode);
     }
     
     /**
@@ -237,11 +294,11 @@ extends AbstractProbabilityDistribution<E> {
      * @param nodeDelta the node count delta to add to each predecessor node.
      */
     private void updateMetadata(Node<E> node, 
-                                final double weight, 
+                                final double weightDelta, 
                                 final int nodeDelta) {
         while (node != null) {
-            node.setNumberOfLeaves(node.getNumberOfLeaves() + 1);
-            node.setWeight(node.getWeight() + weight);
+            node.setNumberOfLeaves(node.getNumberOfLeaves() + nodeDelta);
+            node.setWeight(node.getWeight() + weightDelta);
             node = node.getParent();
         }
     }
@@ -252,7 +309,21 @@ extends AbstractProbabilityDistribution<E> {
     
     @Override
     public E sampleElement() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        checkNotEmpty();
+        
+        double value = this.totalWeight * this.random.nextDouble();
+        Node<E> node = root;
+        
+        while (node.isRelayNode()) {
+            if (value < node.getLeftChild().getWeight()) {
+                node = node.getLeftChild();
+            } else {
+                node = node.getRightChild();
+                value -= node.getLeftChild().getWeight();
+            }
+        }
+        
+        return node.getElement();
     }
 
     @Override
