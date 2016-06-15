@@ -1,11 +1,14 @@
 package net.coderodde.stat.support;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 
 /**
- * This class implements a hierarchical probability distribution. It uses a 
- * data structure similar to skip list: we have a set of linked list of blocks
- * describing the weight ranges.
+ * This class implements a hierarchical probability distribution. It uses a data
+ * structure similar to a binary tree.
  * 
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Jun 11, 2016)
@@ -13,7 +16,7 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
 public class HierarchicalProbabilityDistribution<E>
 extends AbstractProbabilityDistribution<E> {
 
-    private static final class Block<E> {
+    private static final class Node<E> {
         
         /**
          * Holds the element if this block is a leaf. Internal blocks have 
@@ -28,39 +31,41 @@ extends AbstractProbabilityDistribution<E> {
          */
         private double weight;
         
-        /**
-         * Caches the height of this block. The height of a leaf block is 0.
-         */
-        private int height;
+        private boolean isRelayNode;
         
         /**
-         * Immediate left child block.
+         * The left child node.
          */
-        private Block<E> leftChild;
+        private Node<E> leftChild;
         
         /**
-         * Immediate right child block.
+         * The right child node.
          */
-        private Block<E> rightChild;
+        private Node<E> rightChild;
         
         /**
-         * Immediate parent block.
+         * The parent node.
          */
-        private Block<E> parent;
+        private Node<E> parent;
         
         /**
-         * The total number of descendants that this block has.
+         * Caches the number of leaf nodes in the subtree starting from this
+         * node.
          */
-        private int numberOfDescendants;
+        private int numberOfLeafNodes;
         
-        /**
-         * The maximum possible number of descendants that this block can have.
-         */
-        private int capacity;
-        
-        Block(final E element) {
+        Node(final E element, final double weight) {
             this.element = element;
         }   
+        
+        Node() {
+            this.element = null;
+            this.isRelayNode = true;
+        }
+        
+        E getElement() {
+            return this.element;
+        }
         
         double getWeight() {
             return this.weight;
@@ -70,86 +75,191 @@ extends AbstractProbabilityDistribution<E> {
             this.weight = weight;
         }
         
-        int getHeight() {
-            return this.height;
+        int getNumberOfLeaves() {
+            return this.numberOfLeafNodes;
         }
         
-        void setHeight(final int height) {
-            this.height = height;
+        void setNumberOfLeaves(final int numberOfLeaves) {
+            this.numberOfLeafNodes = numberOfLeaves;
         }
         
-        int getNumberOfMissingBlock() {
-            return 0;
+        Node<E> getLeftChild() {
+            return this.leftChild;
         }
         
-        void setLeftChild(final Block<E> block) {
+        void setLeftChild(final Node<E> block) {
             this.leftChild = block;
         }
         
-        void setRightChild(final Block<E> block) {
+        Node<E> getRightChild() {
+            return this.rightChild;
+        }
+        
+        void setRightChild(final Node<E> block) {
             this.rightChild = block;
         }
         
-        void setParent(final Block<E> block) {
+        Node<E> getParent() {
+            return this.parent;
+        }
+        
+        void setParent(final Node<E> block) {
             this.parent = block;
         }
         
-        boolean isFull() {
-            return false;
+        boolean isRelayNode() {
+            return isRelayNode;
+        }
+        
+        boolean isLeafNode() {
+            return !isRelayNode;
         }
     }
     
-    private Block<E> leftRoot;
-    private Block<E> rightRoot;
+    /**
+     * Maps each element to the list of nodes representing the element.
+     */
+    private final Map<E, List<Node<E>>> map = new HashMap<>();
     
+    /**
+     * The root node of this distribution tree.
+     */
+    private final Node<E> root = new Node<>();
+    
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public void addElement(E element, double weight) {
         checkWeight(weight);
+        final Node<E> newnode = new Node<>(element, weight);
+        List<Node<E>> nodeList = this.map.get(element);
         
-        if (leftRoot == null) {
-            leftRoot = new Block<>(element);
-            leftRoot.setWeight(weight);
-            this.size++;
-            this.totalWeight += weight;
-            return;
-        }
-        
-        if (rightRoot == null) {
-            rightRoot = new Block<>(element);
-            rightRoot.setWeight(weight);
-            this.size++;
-            this.totalWeight += weight;
-            return;
-        }
-        
-        if (leftRoot.isFull() && rightRoot.isFull()) {
-            final Block<E> newroot = new Block<>(null);
-            newroot.setWeight(leftRoot.getWeight() + rightRoot.getWeight());
-            newroot.setHeight(leftRoot.getHeight() + 1);
-            newroot.setLeftChild(leftRoot);
-            newroot.setRightChild(rightRoot);
-            leftRoot.setParent(newroot);
-            rightRoot.setParent(newroot);
-            leftRoot = newroot;
-            this.size++;
-            this.totalWeight += weight;
-            return;
-        }
+        if (nodeList == null) {
+            nodeList = new ArrayList<>();
+            this.map.put(element, nodeList);
+        } 
+            
+        nodeList.add(newnode);
+        insert(newnode, root);
+        this.size++;
+        this.totalWeight += weight;
     }
 
+    @Override
+    public boolean removeElement(final E element) {
+        final List<Node<E>> nodeList = this.map.get(element);
+        
+        if (nodeList == null) {
+            return false;
+        }
+        
+        final Node<E> node = removeLast(nodeList);
+        
+        this.size--;
+        this.totalWeight -= node.getWeight();
+        return true;
+    }
+
+    private void insert(final Node<E> node, final Node<E> root) {
+        if (root.getLeftChild() == null) {
+            root.setLeftChild(node);
+            node.setParent(root);
+            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
+            root.setWeight(root.getWeight() + node.getWeight());
+            return;
+        }
+        
+        if (root.getRightChild() == null) {
+            root.setRightChild(node);
+            node.setParent(root);
+            root.setNumberOfLeaves(root.getNumberOfLeaves() + 1);
+            root.setWeight(root.getWeight() + node.getWeight());
+            return;
+        }
+        
+        Node<E> currentNode = root;
+        
+        while (true) {
+            if (currentNode.isLeafNode()) {
+                break;
+            }
+            
+            // Once here, 'currentNode' has both children. Choose the one that
+            // contains the smaller number of nodes in order to keep the tree
+            // balanced:
+            if (currentNode.leftChild.getNumberOfLeaves() 
+                    < currentNode.rightChild.getNumberOfLeaves()) {
+                currentNode = currentNode.getLeftChild();
+            } else {
+                currentNode = currentNode.getRightChild();
+            }
+        }
+        
+        bypassLeafNode(currentNode, node);
+    }
+    
+    /**
+     * Assuming that {@code leafNodeToBypass} is a leaf node, this procedure 
+     * attaches a relay node instead of it, and assigns {@code leafNodeToBypass}
+     * and {@code newnode} as children of the new relay node.
+     * 
+     * @param leafNodeToBypass the leaf node to bypass.
+     * @param newNode          the new node to add.
+     */
+    private void bypassLeafNode(final Node<E> leafNodeToBypass, 
+                                final Node<E> newNode) {
+        final Node<E> relayNode = new Node<>();
+        final Node<E> parentOfCurrentNode = leafNodeToBypass.getParent();
+        
+        relayNode.setLeftChild(leafNodeToBypass);
+        relayNode.setRightChild(newNode);
+        
+        leafNodeToBypass.setParent(relayNode);
+        newNode.setParent(relayNode);
+        relayNode.setParent(parentOfCurrentNode);
+        
+        if (parentOfCurrentNode.getLeftChild() == leafNodeToBypass) {
+            parentOfCurrentNode.setLeftChild(relayNode);
+        } else {
+            parentOfCurrentNode.setRightChild(relayNode);
+        }
+    }
+    
+    /**
+     * This method is responsible for updating the metadata of this data 
+     * structure.
+     * 
+     * @param node      the node from which to start the metadata update. The 
+     *                  updating routine updates also the metadata of all the 
+     *                  predecessors of this node in the tree.
+     * @param weight    the weight delta to add to each predecessor node.
+     * @param nodeDelta the node count delta to add to each predecessor node.
+     */
+    private void updateMetadata(Node<E> node, 
+                                final double weight, 
+                                final int nodeDelta) {
+        while (node != null) {
+            node.setNumberOfLeaves(node.getNumberOfLeaves() + 1);
+            node.setWeight(node.getWeight() + weight);
+            node = node.getParent();
+        }
+    }
+    
+    private Node<E> removeLast(final List<Node<E>> list) {
+        return list.remove(list.size() - 1);
+    }
+    
     @Override
     public E sampleElement() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public boolean removeElement(E element) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
     public void clear() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.root.setLeftChild(null);
+        this.root.setRightChild(null);
+        this.size = 0;
+        this.totalWeight = 0.0;
     }
-    
 }
