@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import net.coderodde.stat.AbstractProbabilityDistribution;
@@ -9,28 +10,11 @@ import net.coderodde.stat.support.LinkedListProbabilityDistribution;
 
 public class Demo {
 
-    private static final int DISTRIBUTION_SIZE = 100_000;
+    private static final int DISTRIBUTION_SIZE = 20_000;
     
     public static void main(final String[] args) {
-//        BinaryTreeProbabilityDistribution<Integer> dist = 
-//                new BinaryTreeProbabilityDistribution<>();
-//        
-//        for (int i = 0; i < 8; ++i) {
-//            dist.addElement(i, 0.1 * (i + 1));
-//        }
-//       
-//        System.out.println(dist.debugToString());
-//        
-//        dist.removeElement(3);
-//        dist.removeElement(2);
-//        dist.removeElement(5);
-//        
-//        System.out.println(dist.debugToString());
-//        
-//        for (int i = 0; i < 10; ++i) {
-//            System.out.println(dist.sampleElement());
-//            
-//        }
+        System.out.println("[DEMO] BinaryTreeProbabilityDistribution:");
+        binaryTreeProbabilityDistributionDemo();
         
         System.out.println("[STATUS] Warming up...");
         warmup();
@@ -49,6 +33,26 @@ public class Demo {
         profile(arraypd);
         profile(listpd);
         profile(treepd);
+    }
+    
+    private static void binaryTreeProbabilityDistributionDemo() {
+        BinaryTreeProbabilityDistribution<Integer> pd = 
+                new BinaryTreeProbabilityDistribution<>();
+        
+        pd.addElement(0, 1.0);
+        pd.addElement(1, 1.0);
+        pd.addElement(2, 1.0);
+        pd.addElement(3, 3.0);
+        
+        int[] counts = new int[4];
+        
+        for (int i = 0; i < 100; ++i) {
+            Integer myint = pd.sampleElement();
+            counts[myint]++;
+            System.out.println(myint);
+        }
+        
+        System.out.println(Arrays.toString(counts));
     }
     
     private static void 
@@ -163,17 +167,10 @@ public class Demo {
                     content.remove(element);
                 }
             } else if (!pd1.isEmpty()) {
-                // Sample an element.
-                final Integer element1 = pd1.sampleElement();
-                final Integer element2 = pd2.sampleElement();
-                
-                if (!element1.equals(element2)) {
-                    throw new IllegalStateException(
-                            "Identical probability distributions disagreed: " +
-                            element1 + " vs. " + element2);
-                }
-                
-                final Integer element3 = pd3.sampleElement();
+                // Sample elements:
+                pd1.sampleElement();
+                pd2.sampleElement();
+                pd3.sampleElement();
             }
         }
     }
