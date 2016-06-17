@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 import net.coderodde.stat.support.ArrayProbabilityDistribution;
+import net.coderodde.stat.support.BinarySearchProbabilityDistribution;
 import net.coderodde.stat.support.BinaryTreeProbabilityDistribution;
 import net.coderodde.stat.support.LinkedListProbabilityDistribution;
 
@@ -46,9 +47,13 @@ public class Demo {
         AbstractProbabilityDistribution<Integer> treepd =
                 new BinaryTreeProbabilityDistribution<>();
 
+        AbstractProbabilityDistribution<Integer> binarypd = 
+                new BinarySearchProbabilityDistribution<>();
+        
         profile(arraypd);
         profile(listpd);
         profile(treepd);
+        profile(binarypd);
     }
 
     private static void binaryTreeProbabilityDistributionDemo() {
