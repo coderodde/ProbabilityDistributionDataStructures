@@ -18,29 +18,29 @@ import java.util.Random;
  * @version 1.6 (Jun 11, 2016)
  */
 public abstract class AbstractProbabilityDistribution<E> {
-    
+
     /**
      * The amount of elements in this probability distribution.
      */
     protected int size;
-    
+
     /**
      * The sum of all weights.
      */
     protected double totalWeight; 
-    
+
     /**
      * The random number generator of this probability distribution.
      */
     protected final Random random;
-    
+
     /**
      * Constructs this probability distribution.
      */
     protected AbstractProbabilityDistribution() {
         this(new Random());
     }
-    
+
     /**
      * Constructs this probability distribution using the input random number 
      * generator.
@@ -52,24 +52,27 @@ public abstract class AbstractProbabilityDistribution<E> {
                 Objects.requireNonNull(random, 
                                        "The random number generator is null.");
     }
-    
+
     public boolean isEmpty() {
         return this.size == 0;
     }
-    
+
     public int size() {
         return this.size;
     }
-    
+
     /**
      * Adds the element {@code element} to this probability distribution, and
      * assigns {@code weight} as its weight.
      * 
      * @param element the element to add.
      * @param weight  the weight of the new element.
+     * 
+     * @return {@code true} only if the input element did not reside in this
+     *         structure and was successfully added.
      */
     public abstract boolean addElement(final E element, final double weight);
-    
+
     /**
      * Returns a randomly chosen element from this probability distribution 
      * taking the weights into account.
@@ -77,7 +80,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      * @return a randomly chosen element.
      */
     public abstract E sampleElement();
-    
+
     /**
      * Returns {@code true} if this probability distribution contains the
      * element {@code element}.
@@ -87,7 +90,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      *         distribution; {@code false} otherwise.
      */
     public abstract boolean contains(final E element);
-    
+
     /**
      * Removes the element {@code element} from this probability distribution.
      * 
@@ -96,12 +99,12 @@ public abstract class AbstractProbabilityDistribution<E> {
      *         distribution and was successfully removed.
      */
     public abstract boolean removeElement(final E element);
-    
+
     /**
      * Removes all elements from this probability distribution.
      */
     public abstract void clear();
-    
+
     /**
      * Checks that the element weight is valid. The weight must not be a 
      * <tt>NaN</tt> and must be positive, but not a positive infinity.
@@ -112,19 +115,19 @@ public abstract class AbstractProbabilityDistribution<E> {
         if (Double.isNaN(weight)) {
             throw new IllegalArgumentException("The element weight is NaN.");
         }
-        
+
         if (weight <= 0.0) {
             throw new IllegalArgumentException(
                     "The element weight must be positive. Received " + weight);
         }
-        
+
         if (Double.isInfinite(weight)) {
             // Once here, 'weight' is positive infinity.
             throw new IllegalArgumentException(
                     "The element weight is infinite.");
         }
     }
-    
+
     /**
      * Checks that this probability distribution contains at least one element.
      */

@@ -11,7 +11,7 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  * 
  * <table>
  * <tr><td>Method</td>  <td>Complexity</td></tr>
- * <tr><td><tt>addElement   </tt> </td>  
+ * <tr><td><tt>addElement   </tt></td>  
  *     <td><tt>amortized constant time</tt>,</td></tr>
  * <tr><td><tt>sampleElement</tt> </td>  <td><tt>O(n)</tt>,</td></tr>
  * <tr><td><tt>removeElement</tt> </td>  <td><tt>O(1)</tt>.</td></tr>
@@ -30,64 +30,64 @@ public class LinkedListProbabilityDistribution<E>
 extends AbstractProbabilityDistribution<E> {
 
     private static final class LinkedListNode<E> {
-        
+
         private final E element;
         private final double weight;
         private LinkedListNode<E> prev;
         private LinkedListNode<E> next;
-        
+
         LinkedListNode(final E element, final double weight) {
             this.element = element;
             this.weight  = weight;
         }
-        
+
         E getElement() {
             return this.element;
         }
-        
+
         double getWeight() {
             return this.weight;
         }
-        
+
         LinkedListNode<E> getPreviousLinkedListNode() {
             return this.prev;
         }
-        
+
         LinkedListNode<E> getNextLinkedListNode() {
             return this.next;
         }
-        
+
         void setPreviousLinkedListNode(final LinkedListNode<E> node) {
             this.prev = node;
         }
-        
+
         void setNextLinkedListNode(final LinkedListNode<E> node) {
             this.next = node;
         }
     }
-    
+
     /**
      * This map maps the elements to their respective linked list nodes.
      */
     private final Map<E, LinkedListNode<E>> map = new HashMap<>();
-    
+
     /**
      * Stores the very first linked list node in this probability distribution.
      */
     private LinkedListNode<E> linkedListHead;
-    
+
     /**
      * Stores the very last linked list node in this probability distribution.
      */
     private LinkedListNode<E> linkedListTail;
-    
+
     /**
      * Construct a new probability distribution. 
      */
     public LinkedListProbabilityDistribution() {
         super();
     }
-    
+
     /**
      * Constructs a new probability distribution using the input random number
      * generator.
@@ -97,20 +97,20 @@ extends AbstractProbabilityDistribution<E> {
     public LinkedListProbabilityDistribution(final Random random) {
         super(random);
     }
-    
+
     /**
      * {@inheritDoc }
      */
     @Override
     public boolean addElement(final E element, final double weight) {
         checkWeight(weight);
-        
+
         if (this.map.containsKey(element)) {
             return false;
         }
-        
+
         final LinkedListNode<E> newnode = new LinkedListNode<>(element, weight);
-        
+
         if (linkedListHead == null) {
             linkedListHead = newnode;
             linkedListTail = newnode;
@@ -119,7 +119,7 @@ extends AbstractProbabilityDistribution<E> {
             newnode.setPreviousLinkedListNode(linkedListTail);
             linkedListTail = newnode;
         }
-        
+
         this.map.put(element, newnode);
         this.size++;
         this.totalWeight += weight;
@@ -133,20 +133,20 @@ extends AbstractProbabilityDistribution<E> {
     public E sampleElement() {
         checkNotEmpty();
         double value = this.random.nextDouble() * this.totalWeight;
-        
+
         for (LinkedListNode<E> node = linkedListHead;
                 node != null;
                 node = node.getNextLinkedListNode()) {
             if (value < node.getWeight()) {
                 return node.getElement();
             }
-            
+
             value -= node.getWeight();
         }
-        
+
         throw new IllegalStateException("Should not get here.");
     }
-    
+
     /**
      * {@inheritDoc } 
      */
@@ -154,25 +154,25 @@ extends AbstractProbabilityDistribution<E> {
     public boolean contains(E element) {
         return this.map.containsKey(element);
     }
-    
+
     /**
      * {@inheritDoc } 
      */
     @Override
     public boolean removeElement(E element) {
         final LinkedListNode<E> node = map.get(element);
-        
+
         if (node == null) {
             return false;
         }
-        
+
         this.map.remove(element);
         this.size--;
         this.totalWeight -= node.getWeight();
         unlink(node);
         return true;
     }
-    
+
     /**
      * {@inheritDoc } 
      */
@@ -184,17 +184,17 @@ extends AbstractProbabilityDistribution<E> {
         this.linkedListHead = null;
         this.linkedListTail = null;
     }
-    
+
     private void unlink(final LinkedListNode<E> node) {
         final LinkedListNode<E> left  = node.getPreviousLinkedListNode();
         final LinkedListNode<E> right = node.getNextLinkedListNode();
-        
+
         if (left != null) {
             left.setNextLinkedListNode(node.getNextLinkedListNode());
         } else {
             this.linkedListHead = node.getNextLinkedListNode();
         }
-        
+
         if (right != null) {
             right.setPreviousLinkedListNode(node.getPreviousLinkedListNode());
         } else {
