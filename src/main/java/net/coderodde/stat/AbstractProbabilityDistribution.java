@@ -47,18 +47,18 @@ public abstract class AbstractProbabilityDistribution<E> {
      * 
      * @param random the random number generator.
      */
-    protected AbstractProbabilityDistribution(final Random random) {
+    protected AbstractProbabilityDistribution(Random random) {
         this.random = 
                 Objects.requireNonNull(random, 
                                        "The random number generator is null.");
     }
 
     public boolean isEmpty() {
-        return this.size == 0;
+        return size == 0;
     }
 
     public int size() {
-        return this.size;
+        return size;
     }
 
     /**
@@ -71,7 +71,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      * @return {@code true} only if the input element did not reside in this
      *         structure and was successfully added.
      */
-    public abstract boolean addElement(final E element, final double weight);
+    public abstract boolean addElement(E element, double weight);
 
     /**
      * Returns a randomly chosen element from this probability distribution 
@@ -89,7 +89,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      * @return {@code true} if the input element is in this probability 
      *         distribution; {@code false} otherwise.
      */
-    public abstract boolean contains(final E element);
+    public abstract boolean contains(E element);
 
     /**
      * Removes the element {@code element} from this probability distribution.
@@ -98,7 +98,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      * @return {@code true} if the element was present in this probability 
      *         distribution and was successfully removed.
      */
-    public abstract boolean removeElement(final E element);
+    public abstract boolean removeElement(E element);
 
     /**
      * Removes all elements from this probability distribution.
@@ -111,7 +111,7 @@ public abstract class AbstractProbabilityDistribution<E> {
      * 
      * @param weight the weight to validate.
      */
-    protected void checkWeight(final double weight) {
+    protected void checkWeight(double weight) {
         if (Double.isNaN(weight)) {
             throw new IllegalArgumentException("The element weight is NaN.");
         }

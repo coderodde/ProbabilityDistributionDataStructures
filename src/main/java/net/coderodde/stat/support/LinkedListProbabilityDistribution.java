@@ -36,33 +36,33 @@ extends AbstractProbabilityDistribution<E> {
         private LinkedListNode<E> prev;
         private LinkedListNode<E> next;
 
-        LinkedListNode(final E element, final double weight) {
+        LinkedListNode(E element, double weight) {
             this.element = element;
             this.weight  = weight;
         }
 
         E getElement() {
-            return this.element;
+            return element;
         }
 
         double getWeight() {
-            return this.weight;
+            return weight;
         }
 
         LinkedListNode<E> getPreviousLinkedListNode() {
-            return this.prev;
+            return prev;
         }
 
         LinkedListNode<E> getNextLinkedListNode() {
-            return this.next;
+            return next;
         }
 
-        void setPreviousLinkedListNode(final LinkedListNode<E> node) {
-            this.prev = node;
+        void setPreviousLinkedListNode(LinkedListNode<E> node) {
+            prev = node;
         }
 
-        void setNextLinkedListNode(final LinkedListNode<E> node) {
-            this.next = node;
+        void setNextLinkedListNode(LinkedListNode<E> node) {
+            next = node;
         }
     }
 
@@ -94,7 +94,7 @@ extends AbstractProbabilityDistribution<E> {
      * 
      * @param random the random number generator to use.
      */
-    public LinkedListProbabilityDistribution(final Random random) {
+    public LinkedListProbabilityDistribution(Random random) {
         super(random);
     }
 
@@ -102,14 +102,14 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc }
      */
     @Override
-    public boolean addElement(final E element, final double weight) {
+    public boolean addElement(E element, double weight) {
         checkWeight(weight);
 
-        if (this.map.containsKey(element)) {
+        if (map.containsKey(element)) {
             return false;
         }
 
-        final LinkedListNode<E> newnode = new LinkedListNode<>(element, weight);
+        LinkedListNode<E> newnode = new LinkedListNode<>(element, weight);
 
         if (linkedListHead == null) {
             linkedListHead = newnode;
@@ -120,9 +120,9 @@ extends AbstractProbabilityDistribution<E> {
             linkedListTail = newnode;
         }
 
-        this.map.put(element, newnode);
-        this.size++;
-        this.totalWeight += weight;
+        map.put(element, newnode);
+        size++;
+        totalWeight += weight;
         return true;
     }
 
@@ -132,7 +132,7 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public E sampleElement() {
         checkNotEmpty();
-        double value = this.random.nextDouble() * this.totalWeight;
+        double value = random.nextDouble() * totalWeight;
 
         for (LinkedListNode<E> node = linkedListHead;
                 node != null;
@@ -152,7 +152,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean contains(E element) {
-        return this.map.containsKey(element);
+        return map.containsKey(element);
     }
 
     /**
@@ -160,15 +160,15 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean removeElement(E element) {
-        final LinkedListNode<E> node = map.get(element);
+        LinkedListNode<E> node = map.get(element);
 
         if (node == null) {
             return false;
         }
 
-        this.map.remove(element);
-        this.size--;
-        this.totalWeight -= node.getWeight();
+        map.remove(element);
+        size--;
+        totalWeight -= node.getWeight();
         unlink(node);
         return true;
     }
@@ -178,27 +178,27 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
-        this.size = 0;
-        this.totalWeight = 0.0;
-        this.map.clear();
-        this.linkedListHead = null;
-        this.linkedListTail = null;
+        size = 0;
+        totalWeight = 0.0;
+        map.clear();
+        linkedListHead = null;
+        linkedListTail = null;
     }
 
-    private void unlink(final LinkedListNode<E> node) {
-        final LinkedListNode<E> left  = node.getPreviousLinkedListNode();
-        final LinkedListNode<E> right = node.getNextLinkedListNode();
+    private void unlink(LinkedListNode<E> node) {
+        LinkedListNode<E> left  = node.getPreviousLinkedListNode();
+        LinkedListNode<E> right = node.getNextLinkedListNode();
 
         if (left != null) {
             left.setNextLinkedListNode(node.getNextLinkedListNode());
         } else {
-            this.linkedListHead = node.getNextLinkedListNode();
+            linkedListHead = node.getNextLinkedListNode();
         }
 
         if (right != null) {
             right.setPreviousLinkedListNode(node.getPreviousLinkedListNode());
         } else {
-            this.linkedListTail = node.getPreviousLinkedListNode();
+            linkedListTail = node.getPreviousLinkedListNode();
         }
     }
 }

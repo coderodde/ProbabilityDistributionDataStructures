@@ -55,7 +55,7 @@ extends AbstractProbabilityDistribution<E> {
      * 
      * @param random the random number generator.
      */
-    public BinarySearchProbabilityDistribution(final Random random) {
+    public BinarySearchProbabilityDistribution(Random random) {
         super(random);
         this.objectStorageArray = new Object[DEFAULT_STORAGE_ARRAYS_CAPACITY];
         this.weightStorageArray = new double[DEFAULT_STORAGE_ARRAYS_CAPACITY];
@@ -67,41 +67,37 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc } 
      */
     @Override
-    public boolean addElement(final E element, final double weight) {
+    public boolean addElement(E element, double weight) {
         checkWeight(weight);
         
-        if (this.filterSet.contains(element)) {
+        if (filterSet.contains(element)) {
             return false;
         }
         
-        ensureCapacity(this.size + 1);
-        
-        this.objectStorageArray[this.size] = element;
-        this.weightStorageArray[this.size] = weight;
-        this.accumulatedWeightArray[this.size] = this.totalWeight;
-        this.totalWeight += weight;
-        this.size++;
-        this.filterSet.add(element);
-        
+        ensureCapacity(size + 1);
+        objectStorageArray[size] = element;
+        weightStorageArray[size] = weight;
+        accumulatedWeightArray[size] = totalWeight;
+        totalWeight += weight;
+        size++;
+        filterSet.add(element);
         return true;
     }
 
     @Override
     public E sampleElement() {
-        final double value = this.totalWeight * this.random.nextDouble();
+        double value = totalWeight * random.nextDouble();
         
         int left = 0;
-        int right = this.size - 1;
+        int right = size - 1;
         
         while (left < right) {
-            final int middle = left + ((right - left) >> 1);
-            
-            final double lowerBound = this.accumulatedWeightArray[middle];
-            final double upperBound = lowerBound + 
-                                      this.weightStorageArray[middle];
+            int middle = left + ((right - left) >> 1);
+            double lowerBound = accumulatedWeightArray[middle];
+            double upperBound = lowerBound + weightStorageArray[middle];
             
             if (lowerBound <= value && value < upperBound) {
-                return (E) this.objectStorageArray[middle];
+                return (E) objectStorageArray[middle];
             }
             
             if (value < lowerBound) {
@@ -111,81 +107,79 @@ extends AbstractProbabilityDistribution<E> {
             }
         }
         
-        return (E) this.objectStorageArray[left];
+        return (E) objectStorageArray[left];
     }
 
     @Override
-    public boolean contains(final E element) {
-        return this.filterSet.contains(element);
+    public boolean contains(E element) {
+        return filterSet.contains(element);
     }
 
     @Override
-    public boolean removeElement(final E element) {
-        if (!this.filterSet.contains(element)) {
+    public boolean removeElement(E element) {
+        if (!filterSet.contains(element)) {
             return false;
         }
 
-        final int index = indexOf(element);
-        final double weight = this.weightStorageArray[index];
-        this.totalWeight -= weight;
+        int index = indexOf(element);
+        double weight = weightStorageArray[index];
+        totalWeight -= weight;
 
-        for (int j = index + 1; j < this.size; ++j) {
-            this.objectStorageArray[j - 1]     = this.objectStorageArray[j];
-            this.weightStorageArray[j - 1]     = this.weightStorageArray[j];
-            this.accumulatedWeightArray[j - 1] = this.accumulatedWeightArray[j] 
-                                                 - weight;
+        for (int j = index + 1; j < size; ++j) {
+            objectStorageArray[j - 1]     = objectStorageArray[j];
+            weightStorageArray[j - 1]     = weightStorageArray[j];
+            accumulatedWeightArray[j - 1] = accumulatedWeightArray[j] - weight;
         }
         
-        this.objectStorageArray[--this.size] = null;
-        
+        objectStorageArray[size] = null;
         return true;    
     }
 
     @Override
     public void clear() {
-        for (int i = 0; i < this.size; ++i) {
-            this.objectStorageArray[i] = null;
+        for (int i = 0; i < size; ++i) {
+            objectStorageArray[i] = null;
         }
         
-        this.size = 0;
-        this.totalWeight = 0.0;
+        size = 0;
+        totalWeight = 0.0;
     }
     
-    private void ensureCapacity(final int requestedCapacity) {
+    private void ensureCapacity(int requestedCapacity) {
         if (requestedCapacity > objectStorageArray.length) {
-            final int newCapacity = Math.max(requestedCapacity, 
-                                             2 * objectStorageArray.length);
-            final Object[] newObjectStorageArray = new Object[newCapacity];
-            final double[] newWeightStorageArray = new double[newCapacity];
-            final double[] newAccumulatedWeightArray = new double[newCapacity];
+            int newCapacity = Math.max(requestedCapacity, 
+                                       2 * objectStorageArray.length);
+            Object[] newObjectStorageArray = new Object[newCapacity];
+            double[] newWeightStorageArray = new double[newCapacity];
+            double[] newAccumulatedWeightArray = new double[newCapacity];
 
-            System.arraycopy(this.objectStorageArray, 
+            System.arraycopy(objectStorageArray, 
                              0, 
                              newObjectStorageArray, 
                              0, 
-                             this.size);
+                             size);
 
-            System.arraycopy(this.weightStorageArray,
+            System.arraycopy(weightStorageArray,
                              0,
                              newWeightStorageArray, 
                              0,
-                             this.size);
+                             size);
             
-            System.arraycopy(this.accumulatedWeightArray,
+            System.arraycopy(accumulatedWeightArray,
                              0, 
                              newAccumulatedWeightArray, 
                              0, 
-                             this.size);
+                             size);
 
-            this.objectStorageArray = newObjectStorageArray;
-            this.weightStorageArray = newWeightStorageArray;
-            this.accumulatedWeightArray = newAccumulatedWeightArray;
+            objectStorageArray = newObjectStorageArray;
+            weightStorageArray = newWeightStorageArray;
+            accumulatedWeightArray = newAccumulatedWeightArray;
         }
     }
 
-    private int indexOf(final E element) {
-        for (int i = 0; i < this.size; ++i) {
-            if (Objects.equals(element, this.objectStorageArray[i])) {
+    private int indexOf(E element) {
+        for (int i = 0; i < size; ++i) {
+            if (Objects.equals(element, objectStorageArray[i])) {
                 return i;
             }
         }

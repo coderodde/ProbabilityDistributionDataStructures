@@ -67,7 +67,7 @@ extends AbstractProbabilityDistribution<E> {
          * @param element the element to store.
          * @param weight  the weight of the element.
          */
-        Node(final E element, final double weight) {
+        Node(E element, double weight) {
             this.element           = element;
             this.weight            = weight;
             this.numberOfLeafNodes = 1;
@@ -80,7 +80,7 @@ extends AbstractProbabilityDistribution<E> {
          * @param weight the sum of the weights of all the leaf nodes reachable
          *               downwards from this node.
          */
-        Node(final double weight) {
+        Node(double weight) {
             this.element           = null;
             this.weight            = weight;
             this.numberOfLeafNodes = 1;
@@ -94,56 +94,56 @@ extends AbstractProbabilityDistribution<E> {
          */
         @Override
         public String toString() {
-            if (this.isRelayNode) {
-                return "[" + String.format("%.3f", this.getWeight()) +
-                       " : " + this.numberOfLeafNodes + "]";
+            if (isRelayNode) {
+                return "[" + String.format("%.3f", getWeight()) + " : "
+                           + numberOfLeafNodes + "]";
             }
 
-            return "(" + String.format("%.3f", this.getWeight()) + 
-                   " : " + this.element + ")";
+            return "(" + String.format("%.3f", getWeight()) + " : " 
+                       + element + ")";
         }
 
         E getElement() {
-            return this.element;
+            return element;
         }
 
         double getWeight() {
-            return this.weight;
+            return weight;
         }
 
-        void setWeight(final double weight) {
+        void setWeight(double weight) {
             this.weight = weight;
         }
 
         int getNumberOfLeaves() {
-            return this.numberOfLeafNodes;
+            return numberOfLeafNodes;
         }
 
-        void setNumberOfLeaves(final int numberOfLeaves) {
+        void setNumberOfLeaves(int numberOfLeaves) {
             this.numberOfLeafNodes = numberOfLeaves;
         }
 
         Node<E> getLeftChild() {
-            return this.leftChild;
+            return leftChild;
         }
 
-        void setLeftChild(final Node<E> block) {
+        void setLeftChild(Node<E> block) {
             this.leftChild = block;
         }
 
         Node<E> getRightChild() {
-            return this.rightChild;
+            return rightChild;
         }
 
-        void setRightChild(final Node<E> block) {
+        void setRightChild(Node<E> block) {
             this.rightChild = block;
         }
 
         Node<E> getParent() {
-            return this.parent;
+            return parent;
         }
 
-        void setParent(final Node<E> block) {
+        void setParent(Node<E> block) {
             this.parent = block;
         }
 
@@ -176,7 +176,7 @@ extends AbstractProbabilityDistribution<E> {
      * 
      * @param random the random number generator to use. 
      */
-    public BinaryTreeProbabilityDistribution(final Random random) {
+    public BinaryTreeProbabilityDistribution(Random random) {
         super(random);
     }
 
@@ -184,18 +184,18 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc }
      */
     @Override
-    public boolean addElement(final E element, final double weight) {
+    public boolean addElement(E element, double weight) {
         checkWeight(weight);
 
-        if (this.map.containsKey(element)) {
+        if (map.containsKey(element)) {
             return false;
         }
 
-        final Node<E> newnode = new Node<>(element, weight);
+        Node<E> newnode = new Node<>(element, weight);
         insert(newnode);
-        this.size++;
-        this.totalWeight += weight;
-        this.map.put(element, newnode);
+        size++;
+        totalWeight += weight;
+        map.put(element, newnode);
         return true;
     }
 
@@ -203,8 +203,8 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc } 
      */
     @Override
-    public boolean contains(final E element) {
-        return this.map.containsKey(element);
+    public boolean contains(E element) {
+        return map.containsKey(element);
     }
 
     /**
@@ -214,7 +214,7 @@ extends AbstractProbabilityDistribution<E> {
     public E sampleElement() {
         checkNotEmpty();
 
-        double value = this.totalWeight * this.random.nextDouble();
+        double value = totalWeight * random.nextDouble();
         Node<E> node = root;
 
         while (node.isRelayNode()) {
@@ -233,16 +233,16 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc } 
      */
     @Override
-    public boolean removeElement(final E element) {
-        final Node<E> node = this.map.get(element);
+    public boolean removeElement(E element) {
+        Node<E> node = map.get(element);
 
         if (node == null) {
             return false;
         }
 
         delete(node);
-        this.size--;
-        this.totalWeight -= node.getWeight();
+        size--;
+        totalWeight -= node.getWeight();
         return true;
     }
 
@@ -251,9 +251,9 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
-        this.root = null;
-        this.size = 0;
-        this.totalWeight = 0.0;
+        root = null;
+        size = 0;
+        totalWeight = 0.0;
     }
 
     /**
@@ -264,10 +264,10 @@ extends AbstractProbabilityDistribution<E> {
      * @param leafNodeToBypass the leaf node to bypass.
      * @param newNode          the new node to add.
      */
-    private void bypassLeafNode(final Node<E> leafNodeToBypass, 
-                                final Node<E> newNode) {
-        final Node<E> relayNode = new Node<>(leafNodeToBypass.getWeight());
-        final Node<E> parentOfCurrentNode = leafNodeToBypass.getParent();
+    private void bypassLeafNode(Node<E> leafNodeToBypass, 
+                                Node<E> newNode) {
+        Node<E> relayNode = new Node<>(leafNodeToBypass.getWeight());
+        Node<E> parentOfCurrentNode = leafNodeToBypass.getParent();
 
         relayNode.setLeftChild(leafNodeToBypass);
         relayNode.setRightChild(newNode);
@@ -276,7 +276,7 @@ extends AbstractProbabilityDistribution<E> {
         newNode.setParent(relayNode);
 
         if (parentOfCurrentNode == null) {
-            this.root = relayNode;
+            root = relayNode;
         } else if (parentOfCurrentNode.getLeftChild() == leafNodeToBypass) {
             relayNode.setParent(parentOfCurrentNode);
             parentOfCurrentNode.setLeftChild(relayNode);
@@ -288,7 +288,7 @@ extends AbstractProbabilityDistribution<E> {
         updateMetadata(relayNode, newNode.getWeight(), 1);
     }
 
-    private void insert(final Node<E> node) {
+    private void insert(Node<E> node) {
         if (root == null) {
             root = node;
             return;
@@ -308,21 +308,21 @@ extends AbstractProbabilityDistribution<E> {
         bypassLeafNode(currentNode, node);
     }
 
-    private void delete(final Node<E> leafToDelete) {
-        final Node<E> relayNode = leafToDelete.getParent();
+    private void delete(Node<E> leafToDelete) {
+        Node<E> relayNode = leafToDelete.getParent();
 
         if (relayNode == null) {
-            this.root = null;
+            root = null;
             return;
         } 
 
-        final Node<E> parentOfRelayNode = relayNode.getParent();
-        final Node<E> siblingLeaf = relayNode.getLeftChild() == leafToDelete ?
+        Node<E> parentOfRelayNode = relayNode.getParent();
+        Node<E> siblingLeaf = relayNode.getLeftChild() == leafToDelete ?
                                     relayNode.getRightChild() :
                                     relayNode.getLeftChild();
 
         if (parentOfRelayNode == null) {
-            this.root = siblingLeaf;
+            root = siblingLeaf;
             siblingLeaf.setParent(null);
             return;
         }
@@ -348,8 +348,8 @@ extends AbstractProbabilityDistribution<E> {
      * @param nodeDelta the node count delta to add to each predecessor node.
      */
     private void updateMetadata(Node<E> node, 
-                                final double weightDelta, 
-                                final int nodeDelta) {
+                                double weightDelta, 
+                                int nodeDelta) {
         while (node != null) {
             node.setNumberOfLeaves(node.getNumberOfLeaves() + nodeDelta);
             node.setWeight(node.getWeight() + weightDelta);
@@ -362,16 +362,16 @@ extends AbstractProbabilityDistribution<E> {
             return "empty";
         }
 
-        final StringBuilder sb = new StringBuilder();
-        final int treeHeight = getTreeHeight(root);
-        final Deque<Node<E>> queue = new LinkedList<>();
+        StringBuilder sb = new StringBuilder();
+        int treeHeight = getTreeHeight(root);
+        Deque<Node<E>> queue = new LinkedList<>();
         queue.addLast(root);
 
         for (int i = 0; i < treeHeight + 1; ++i) {
             int currentQueueLength = queue.size();
 
             for (int j = 0; j < currentQueueLength; ++j) {
-                final Node<E> node = queue.removeFirst();
+                Node<E> node = queue.removeFirst();
                 addChildren(node, queue);
                 sb.append(node == null ? "null" : node.toString()).append(" ");
             }
@@ -382,7 +382,7 @@ extends AbstractProbabilityDistribution<E> {
         return sb.toString();
     }
 
-    private void addChildren(final Node<E> node, final Deque<Node<E>> queue) {
+    private void addChildren(Node<E> node, Deque<Node<E>> queue) {
         if (node == null) {
             queue.addLast(null);
             queue.addLast(null);
@@ -393,7 +393,7 @@ extends AbstractProbabilityDistribution<E> {
         queue.addLast(node.getRightChild());
     }
 
-    private int getTreeHeight(final Node<E> node) {
+    private int getTreeHeight(Node<E> node) {
         if (node == null) {
             return -1;
         }

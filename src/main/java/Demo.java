@@ -12,22 +12,32 @@ import net.coderodde.stat.support.LinkedListProbabilityDistribution;
 public class Demo {
 
     private static final int DISTRIBUTION_SIZE = 20_000;
-
+    private static final int WARMUP_SIZE = 20_000;
+    
     public static void main(final String[] args) {
-//        BinaryTreeProbabilityDistribution<Integer> d = new BinaryTreeProbabilityDistribution<>();
-//        
-//        for (int i = 0; i < 8; ++i) {
-//            d.addElement(i, 0.1 * (i + 1));
-//        }
-//        
-//        System.out.println(d.debugToString());
-//        
-//        for (int i = 0; i < 8; ++i) {
-//            System.out.println("Removed " + i + ":");
-//            d.removeElement(i);
-//            System.out.println(d.debugToString());
-//        }
-//        
+        BinaryTreeProbabilityDistribution<Integer> d = new BinaryTreeProbabilityDistribution<>();
+        
+        for (int i = 0; i < 8; ++i) {
+            d.addElement(i, 0.1 * (i + 1));
+        }
+        
+        System.out.println(d.debugToString());
+        
+        d.removeElement(4);
+        
+        System.out.println(d.debugToString());
+        
+        d.removeElement(2);
+        
+        System.out.println(d.debugToString());
+        
+        d.removeElement(6);
+        
+        System.out.println(d.debugToString());
+        
+        d.removeElement(1);
+        
+        System.out.println(d.debugToString());
 //        System.exit(0);
         
         System.out.println("[DEMO] BinaryTreeProbabilityDistribution:");
@@ -55,7 +65,7 @@ public class Demo {
         profile(treepd);
         profile(binarypd);
     }
-
+    
     private static void binaryTreeProbabilityDistributionDemo() {
         BinaryTreeProbabilityDistribution<Integer> pd = 
                 new BinaryTreeProbabilityDistribution<>();
@@ -146,10 +156,13 @@ public class Demo {
     }
 
     private static void warmup() {
-        final long seed =35214717058750L; System.nanoTime();
+        System.out.println("Warming up...");
+        
+        final long seed = System.nanoTime();
         final Random inputRandom1 = new Random(seed);
         final Random inputRandom2 = new Random(seed);
         final Random inputRandom3 = new Random(seed);
+        final Random inputRandom4 = new Random(seed);
 
         final AbstractProbabilityDistribution<Integer> pd1 = 
              new ArrayProbabilityDistribution<>(inputRandom1);
@@ -159,6 +172,9 @@ public class Demo {
 
         final AbstractProbabilityDistribution<Integer> pd3 =
              new BinaryTreeProbabilityDistribution<>(inputRandom3);
+        
+        final AbstractProbabilityDistribution<Integer> pd4 =
+             new BinarySearchProbabilityDistribution<>(inputRandom4);
 
         final Random random = new Random(seed);
         final List<Integer> content = new ArrayList<>();
@@ -177,6 +193,7 @@ public class Demo {
                 pd1.addElement(element, weight);
                 pd2.addElement(element, weight);
                 pd3.addElement(element, weight);
+                pd4.addElement(element, weight);
             } else if (coin < 0.5) {
                 // Remove an element.
                 if (!pd1.isEmpty()) {
@@ -185,6 +202,7 @@ public class Demo {
                     pd1.removeElement(element);
                     pd2.removeElement(element);
                     pd3.removeElement(element);
+                    pd4.removeElement(element);
                     content.remove(element);
                 }
             } else if (!pd1.isEmpty()) {
@@ -192,8 +210,11 @@ public class Demo {
                 pd1.sampleElement();
                 pd2.sampleElement();
                 pd3.sampleElement();
+                pd4.sampleElement();
             }
         }
+        
+        System.out.println("Warming up done!");
     }
 
     private static Integer choose(final List<Integer> list, 

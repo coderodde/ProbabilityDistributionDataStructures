@@ -36,7 +36,7 @@ extends AbstractProbabilityDistribution<E> {
         this(new Random());
     }
 
-    public ArrayProbabilityDistribution(final Random random) {
+    public ArrayProbabilityDistribution(Random random) {
         super(random);
         this.objectStorageArray = new Object[DEFAULT_STORAGE_ARRAYS_CAPACITY];
         this.weightStorageArray = new double[DEFAULT_STORAGE_ARRAYS_CAPACITY];
@@ -46,7 +46,7 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc } 
      */
     @Override
-    public boolean addElement(final E element, final double weight) {
+    public boolean addElement(E element, double weight) {
         checkWeight(weight);
 
         if (filterSet.contains(element)) {
@@ -54,12 +54,12 @@ extends AbstractProbabilityDistribution<E> {
             return false;
         }
 
-        ensureCapacity(this.size + 1);
-        objectStorageArray[this.size] = element;
-        weightStorageArray[this.size] = weight; 
-        this.totalWeight += weight;
-        this.size++;
-        this.filterSet.add(element);
+        ensureCapacity(size + 1);
+        objectStorageArray[size] = element;
+        weightStorageArray[size] = weight; 
+        totalWeight += weight;
+        size++;
+        filterSet.add(element);
         return true;
     }
 
@@ -69,14 +69,14 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public E sampleElement() {
         checkNotEmpty();
-        double value = this.random.nextDouble() * this.totalWeight;
+        double value = random.nextDouble() * totalWeight;
 
-        for (int i = 0; i < this.size; ++i) {
-            if (value < this.weightStorageArray[i]) {
-                return (E) this.objectStorageArray[i];
+        for (int i = 0; i < size; ++i) {
+            if (value < weightStorageArray[i]) {
+                return (E) objectStorageArray[i];
             }
 
-            value -= this.weightStorageArray[i];
+            value -= weightStorageArray[i];
         }
 
         throw new IllegalStateException("Should not get here.");
@@ -86,20 +86,20 @@ extends AbstractProbabilityDistribution<E> {
      * {@inheritDoc } 
      */
     @Override
-    public boolean removeElement(final E element) {
-        if (!this.filterSet.contains(element)) {
+    public boolean removeElement(E element) {
+        if (!filterSet.contains(element)) {
             return false;
         }
 
-        final int index = indexOf(element);
-        this.totalWeight -= this.weightStorageArray[index];
+        int index = indexOf(element);
+        totalWeight -= weightStorageArray[index];
 
-        for (int j = index + 1; j < this.size; ++j) {
+        for (int j = index + 1; j < size; ++j) {
             objectStorageArray[j - 1] = objectStorageArray[j];
             weightStorageArray[j - 1] = weightStorageArray[j];
         }
 
-        objectStorageArray[--this.size] = null;
+        objectStorageArray[--size] = null;
         return true;
     }
 
@@ -108,12 +108,12 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
-        for (int i = 0; i < this.size; ++i) {
+        for (int i = 0; i < size; ++i) {
             objectStorageArray[i] = null;
         }
 
-        this.size = 0; 
-        this.totalWeight = 0.0;
+        size = 0; 
+        totalWeight = 0.0;
     }
 
     /**
@@ -121,12 +121,12 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean contains(E element) {
-        return this.filterSet.contains(element);
+        return filterSet.contains(element);
     }
 
-    private int indexOf(final E element) {
-        for (int i = 0; i < this.size; ++i) {
-            if (Objects.equals(element, this.objectStorageArray[i])) {
+    private int indexOf(E element) {
+        for (int i = 0; i < size; ++i) {
+            if (Objects.equals(element, objectStorageArray[i])) {
                 return i;
             }
         }
@@ -134,27 +134,27 @@ extends AbstractProbabilityDistribution<E> {
         return -1;
     }
 
-    private void ensureCapacity(final int requestedCapacity) {
+    private void ensureCapacity(int requestedCapacity) {
         if (requestedCapacity > objectStorageArray.length) {
-            final int newCapacity = Math.max(requestedCapacity, 
+            int newCapacity = Math.max(requestedCapacity, 
                                              2 * objectStorageArray.length);
-            final Object[] newObjectStorageArray = new Object[newCapacity];
-            final double[] newWeightStorageArray = new double[newCapacity];
+            Object[] newObjectStorageArray = new Object[newCapacity];
+            double[] newWeightStorageArray = new double[newCapacity];
 
-            System.arraycopy(this.objectStorageArray, 
+            System.arraycopy(objectStorageArray, 
                              0, 
                              newObjectStorageArray, 
                              0, 
-                             this.size);
+                             size);
 
-            System.arraycopy(this.weightStorageArray,
+            System.arraycopy(weightStorageArray,
                              0,
                              newWeightStorageArray, 
                              0,
-                             this.size);
+                             size);
 
-            this.objectStorageArray = newObjectStorageArray;
-            this.weightStorageArray = newWeightStorageArray;
+            objectStorageArray = newObjectStorageArray;
+            weightStorageArray = newWeightStorageArray;
         }
     }
 }
