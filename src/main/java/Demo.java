@@ -156,8 +156,6 @@ public class Demo {
     }
 
     private static void warmup() {
-        System.out.println("Warming up...");
-        
         final long seed = System.nanoTime();
         final Random inputRandom1 = new Random(seed);
         final Random inputRandom2 = new Random(seed);
@@ -213,8 +211,6 @@ public class Demo {
                 pd4.sampleElement();
             }
         }
-        
-        System.out.println("Warming up done!");
     }
 
     private static Integer choose(final List<Integer> list, 

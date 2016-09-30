@@ -1,6 +1,9 @@
 package net.coderodde.stat.support;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -26,10 +29,45 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
 public class ArrayProbabilityDistribution<E> 
 extends AbstractProbabilityDistribution<E> {
 
-    private static final int DEFAULT_STORAGE_ARRAYS_CAPACITY = 8;
-
-    private Object[] objectStorageArray;
-    private double[] weightStorageArray;
+    /**
+     * Couples the actual element with its respective weight.
+     * 
+     * @param <E> the actual type of the element.
+     */
+    private static final class Entry<E> {
+        
+        /**
+         * The actual element.
+         */
+        private final E element;
+        
+        /**
+         * The weight assigned to the {@code element}.
+         */
+        private final double weight;
+        
+        Entry(E element, double weight) {
+            this.element = element;
+            this.weight = weight;
+        }
+        
+        E getElement() {
+            return element;
+        }
+        
+        double getWeight() {
+            return weight;
+        }
+    }
+    
+    /**
+     * The actual storage array holding the entries.
+     */
+    private final List<Entry<E>> storage = new ArrayList<>();
+    
+    /**
+     * The set keeping track of all entries currently in this distribution.
+     */
     private final Set<E> filterSet = new HashSet<>();
 
     public ArrayProbabilityDistribution() {
@@ -38,8 +76,6 @@ extends AbstractProbabilityDistribution<E> {
 
     public ArrayProbabilityDistribution(Random random) {
         super(random);
-        this.objectStorageArray = new Object[DEFAULT_STORAGE_ARRAYS_CAPACITY];
-        this.weightStorageArray = new double[DEFAULT_STORAGE_ARRAYS_CAPACITY];
     }
 
     /**
@@ -54,11 +90,8 @@ extends AbstractProbabilityDistribution<E> {
             return false;
         }
 
-        ensureCapacity(size + 1);
-        objectStorageArray[size] = element;
-        weightStorageArray[size] = weight; 
+        storage.add(new Entry<>(element, weight));
         totalWeight += weight;
-        size++;
         filterSet.add(element);
         return true;
     }
@@ -70,13 +103,17 @@ extends AbstractProbabilityDistribution<E> {
     public E sampleElement() {
         checkNotEmpty();
         double value = random.nextDouble() * totalWeight;
-
-        for (int i = 0; i < size; ++i) {
-            if (value < weightStorageArray[i]) {
-                return (E) objectStorageArray[i];
+        int distributionSize = storage.size();
+        
+        for (int i = 0; i < distributionSize; ++i) {
+            Entry<E> entry = storage.get(i);
+            double currentWeight = entry.getWeight();
+            
+            if (value < currentWeight) {
+                return entry.getElement();
             }
-
-            value -= weightStorageArray[i];
+            
+            value -= currentWeight;
         }
 
         throw new IllegalStateException("Should not get here.");
@@ -91,15 +128,7 @@ extends AbstractProbabilityDistribution<E> {
             return false;
         }
 
-        int index = indexOf(element);
-        totalWeight -= weightStorageArray[index];
-
-        for (int j = index + 1; j < size; ++j) {
-            objectStorageArray[j - 1] = objectStorageArray[j];
-            weightStorageArray[j - 1] = weightStorageArray[j];
-        }
-
-        objectStorageArray[--size] = null;
+        totalWeight -= storage.remove(indexOf(element)).getWeight();
         return true;
     }
 
@@ -108,11 +137,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
-        for (int i = 0; i < size; ++i) {
-            objectStorageArray[i] = null;
-        }
-
-        size = 0; 
+        storage.clear();
         totalWeight = 0.0;
     }
 
@@ -125,36 +150,38 @@ extends AbstractProbabilityDistribution<E> {
     }
 
     private int indexOf(E element) {
-        for (int i = 0; i < size; ++i) {
-            if (Objects.equals(element, objectStorageArray[i])) {
+        for (int i = 0; i < storage.size(); ++i) {
+            E currentElement = storage.get(i).getElement();
+            
+            if (Objects.equals(currentElement, element)) {
                 return i;
             }
         }
-
+        
         return -1;
     }
-
-    private void ensureCapacity(int requestedCapacity) {
-        if (requestedCapacity > objectStorageArray.length) {
-            int newCapacity = Math.max(requestedCapacity, 
-                                             2 * objectStorageArray.length);
-            Object[] newObjectStorageArray = new Object[newCapacity];
-            double[] newWeightStorageArray = new double[newCapacity];
-
-            System.arraycopy(objectStorageArray, 
-                             0, 
-                             newObjectStorageArray, 
-                             0, 
-                             size);
-
-            System.arraycopy(weightStorageArray,
-                             0,
-                             newWeightStorageArray, 
-                             0,
-                             size);
-
-            objectStorageArray = newObjectStorageArray;
-            weightStorageArray = newWeightStorageArray;
+    
+    protected void checkNotEmpty() {
+        if (storage.isEmpty()) {
+            throw new IllegalStateException(
+                    "This probability distribution is empty.");
         }
+    }
+    
+    public static void main(String[] args) {
+        AbstractProbabilityDistribution<Integer> pd = 
+                new ArrayProbabilityDistribution<>();
+        
+        pd.addElement(1, 1.0);
+        pd.addElement(2, 2.0);
+        pd.addElement(3, 3.0);
+        
+        int[] count = new int[4];
+        
+        for (int i = 0; i < 1000; ++i) {
+            count[pd.sampleElement()]++;
+        }
+        
+        System.out.println(Arrays.toString(count));
     }
 }
