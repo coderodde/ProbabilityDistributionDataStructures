@@ -20,11 +20,6 @@ import java.util.Random;
 public abstract class AbstractProbabilityDistribution<E> {
 
     /**
-     * The amount of elements in this probability distribution.
-     */
-    protected int size;
-
-    /**
      * The sum of all weights.
      */
     protected double totalWeight; 
@@ -53,13 +48,20 @@ public abstract class AbstractProbabilityDistribution<E> {
                                        "The random number generator is null.");
     }
 
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
-    public int size() {
-        return size;
-    }
+    /**
+     * Returns {@code true} if this probability distribution is empty. Otherwise
+     * {@code false} is returned.
+     * 
+     * @return {@code true} if this probability distribution is empty.
+     */
+    public abstract boolean isEmpty();
+    
+    /**
+     * Returns the number of elements in this probability distribution.
+     * 
+     * @return the size of this probability distribution.
+     */
+    public abstract int size();
 
     /**
      * Adds the element {@code element} to this probability distribution, and
@@ -131,7 +133,7 @@ public abstract class AbstractProbabilityDistribution<E> {
     /**
      * Checks that this probability distribution contains at least one element.
      */
-    protected void checkNotEmpty() {
+    protected void checkNotEmpty(int size) {
         if (size == 0) {
             throw new IllegalStateException(
                     "This probability distribution is empty.");

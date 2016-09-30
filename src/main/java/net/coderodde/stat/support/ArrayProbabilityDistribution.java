@@ -24,7 +24,7 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  *            distribution.
  * 
  * @author Rodion "rodde" Efremov
- * @version 1.6 (Jun 11, 2016)
+ * @version 1.61 (Sep 30, 2016)
  */
 public class ArrayProbabilityDistribution<E> 
 extends AbstractProbabilityDistribution<E> {
@@ -142,6 +142,22 @@ extends AbstractProbabilityDistribution<E> {
     }
 
     /**
+     * {@inheritDoc }
+     */
+    @Override
+    public boolean isEmpty() {
+        return storage.isEmpty();
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int size() {
+        return storage.size();
+    }
+    
+    /**
      * {@inheritDoc } 
      */
     @Override
@@ -162,10 +178,7 @@ extends AbstractProbabilityDistribution<E> {
     }
     
     protected void checkNotEmpty() {
-        if (storage.isEmpty()) {
-            throw new IllegalStateException(
-                    "This probability distribution is empty.");
-        }
+        checkNotEmpty(storage.size());
     }
     
     public static void main(String[] args) {

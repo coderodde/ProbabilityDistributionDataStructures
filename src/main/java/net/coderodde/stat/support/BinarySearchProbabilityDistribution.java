@@ -1,7 +1,9 @@
 package net.coderodde.stat.support;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -13,12 +15,46 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  * in worst-case logarithmic time.
  * 
  * @author Rodion "rodde" Efremov
- * @version 1.6 (Jun 17, 2016)
+ * @version 1.61 (Sep 30, 2016)
  */
 public class BinarySearchProbabilityDistribution<E> 
 extends AbstractProbabilityDistribution<E> {
 
-    private static final int DEFAULT_STORAGE_ARRAYS_CAPACITY = 8;
+    /**
+     * This class implements the actual entry in the distribution.
+     * 
+     * @param <E> the actual element type.
+     */
+    private static final class Entry<E> {
+        
+        private final E element;
+        
+        private final double weight;
+        
+        private double accumulatedWeight;
+        
+        Entry(E element, double weight, double accumulatedWeight) {
+            this.element = element;
+            this.weight = weight; 
+            this.accumulatedWeight = accumulatedWeight;
+        }
+        
+        E getElement() {
+            return element;
+        }
+        
+        double getWeight() {
+            return weight;
+        }
+        
+        double getAccumulatedWeight() {
+            return accumulatedWeight;
+        }
+        
+        void addAccumulatedWeight(double delta) {
+            accumulatedWeight += delta;
+        }
+    }
     
     /**
      * Holds all the elements currently stored in this probability distribution.
@@ -26,20 +62,9 @@ extends AbstractProbabilityDistribution<E> {
     private final Set<E> filterSet = new HashSet<>();
     
     /**
-     * Stores all the actual elements in this probability distribution.
+     * Holds the actual distribution entries.
      */
-    private Object[] objectStorageArray;
-    
-    /**
-     * Stores all the actual elements in this probability distribution.
-     */
-    private double[] weightStorageArray;
-    
-    /**
-     * Stores the accumulated weights in order to be able to perform binary 
-     * search.
-     */
-    private double[] accumulatedWeightArray;
+    private final List<Entry<E>> storage = new ArrayList<>();
     
     /**
      * Constructs this probability distribution with default random number 
@@ -57,10 +82,6 @@ extends AbstractProbabilityDistribution<E> {
      */
     public BinarySearchProbabilityDistribution(Random random) {
         super(random);
-        this.objectStorageArray = new Object[DEFAULT_STORAGE_ARRAYS_CAPACITY];
-        this.weightStorageArray = new double[DEFAULT_STORAGE_ARRAYS_CAPACITY];
-        this.accumulatedWeightArray = 
-                new double[DEFAULT_STORAGE_ARRAYS_CAPACITY];
     }
     
     /**
@@ -74,30 +95,32 @@ extends AbstractProbabilityDistribution<E> {
             return false;
         }
         
-        ensureCapacity(size + 1);
-        objectStorageArray[size] = element;
-        weightStorageArray[size] = weight;
-        accumulatedWeightArray[size] = totalWeight;
+        Entry<E> e = new Entry<>(element, weight, totalWeight);
+        storage.add(e);
         totalWeight += weight;
-        size++;
         filterSet.add(element);
         return true;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public E sampleElement() {
+        checkNotEmpty();
         double value = totalWeight * random.nextDouble();
         
         int left = 0;
-        int right = size - 1;
+        int right = storage.size() - 1;
         
         while (left < right) {
             int middle = left + ((right - left) >> 1);
-            double lowerBound = accumulatedWeightArray[middle];
-            double upperBound = lowerBound + weightStorageArray[middle];
+            Entry<E> middleEntry = storage.get(middle);
+            double lowerBound = middleEntry.getAccumulatedWeight();
+            double upperBound = lowerBound + middleEntry.getWeight();
             
             if (lowerBound <= value && value < upperBound) {
-                return (E) objectStorageArray[middle];
+                return middleEntry.getElement();
             }
             
             if (value < lowerBound) {
@@ -107,14 +130,20 @@ extends AbstractProbabilityDistribution<E> {
             }
         }
         
-        return (E) objectStorageArray[left];
+        return storage.get(left).getElement();
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public boolean contains(E element) {
         return filterSet.contains(element);
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public boolean removeElement(E element) {
         if (!filterSet.contains(element)) {
@@ -122,69 +151,58 @@ extends AbstractProbabilityDistribution<E> {
         }
 
         int index = indexOf(element);
-        double weight = weightStorageArray[index];
+        double weight = storage.get(index).getWeight();
         totalWeight -= weight;
-
-        for (int j = index + 1; j < size; ++j) {
-            objectStorageArray[j - 1]     = objectStorageArray[j];
-            weightStorageArray[j - 1]     = weightStorageArray[j];
-            accumulatedWeightArray[j - 1] = accumulatedWeightArray[j] - weight;
+        int storageLength = storage.size();
+        
+        for (int i = index + 1; i < storageLength; ++i) {
+            storage.get(i).addAccumulatedWeight(-weight);
         }
         
-        objectStorageArray[size] = null;
-        return true;    
+        storage.remove(index);
+        filterSet.remove(element);
+        return true;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public void clear() {
-        for (int i = 0; i < size; ++i) {
-            objectStorageArray[i] = null;
-        }
-        
-        size = 0;
+        storage.clear();
         totalWeight = 0.0;
     }
-    
-    private void ensureCapacity(int requestedCapacity) {
-        if (requestedCapacity > objectStorageArray.length) {
-            int newCapacity = Math.max(requestedCapacity, 
-                                       2 * objectStorageArray.length);
-            Object[] newObjectStorageArray = new Object[newCapacity];
-            double[] newWeightStorageArray = new double[newCapacity];
-            double[] newAccumulatedWeightArray = new double[newCapacity];
 
-            System.arraycopy(objectStorageArray, 
-                             0, 
-                             newObjectStorageArray, 
-                             0, 
-                             size);
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public boolean isEmpty() {
+        return storage.isEmpty();
+    }
 
-            System.arraycopy(weightStorageArray,
-                             0,
-                             newWeightStorageArray, 
-                             0,
-                             size);
-            
-            System.arraycopy(accumulatedWeightArray,
-                             0, 
-                             newAccumulatedWeightArray, 
-                             0, 
-                             size);
-
-            objectStorageArray = newObjectStorageArray;
-            weightStorageArray = newWeightStorageArray;
-            accumulatedWeightArray = newAccumulatedWeightArray;
-        }
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int size() {
+        return storage.size();
     }
 
     private int indexOf(E element) {
-        for (int i = 0; i < size; ++i) {
-            if (Objects.equals(element, objectStorageArray[i])) {
+        int storageLength = storage.size();
+        
+        for (int i = 0; i < storageLength; ++i) {
+            if (Objects.equals(element, storage.get(i).getElement())) {
                 return i;
             }
         }
 
         return -1;
+    }
+    
+    private void checkNotEmpty() {
+        checkNotEmpty(storage.size());
     }
     
     public static void main(String[] args) {

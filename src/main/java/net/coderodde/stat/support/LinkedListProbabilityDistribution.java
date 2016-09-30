@@ -1,5 +1,6 @@
 package net.coderodde.stat.support;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -82,6 +83,12 @@ extends AbstractProbabilityDistribution<E> {
     private LinkedListNode<E> linkedListTail;
 
     /**
+     * 
+     * Stores the number of elements stored in this probability distribution.
+     */
+    private int size;
+    
+    /**
      * Construct a new probability distribution. 
      */
     public LinkedListProbabilityDistribution() {
@@ -131,7 +138,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public E sampleElement() {
-        checkNotEmpty();
+        checkNotEmpty(size);
         double value = random.nextDouble() * totalWeight;
 
         for (LinkedListNode<E> node = linkedListHead;
@@ -184,6 +191,22 @@ extends AbstractProbabilityDistribution<E> {
         linkedListHead = null;
         linkedListTail = null;
     }
+     
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int size() {
+        return size;
+    }
 
     private void unlink(LinkedListNode<E> node) {
         LinkedListNode<E> left  = node.getPreviousLinkedListNode();
@@ -200,5 +223,25 @@ extends AbstractProbabilityDistribution<E> {
         } else {
             linkedListTail = node.getPreviousLinkedListNode();
         }
+    }
+    
+    public static void main(String[] args) {
+        LinkedListProbabilityDistribution<Integer> pd = 
+                new LinkedListProbabilityDistribution<>();
+
+        pd.addElement(0, 1.0);
+        pd.addElement(1, 1.0);
+        pd.addElement(2, 1.0);
+        pd.addElement(3, 3.0);
+
+        int[] counts = new int[4];
+
+        for (int i = 0; i < 100; ++i) {
+            Integer myint = pd.sampleElement();
+            counts[myint]++;
+            System.out.println(myint);
+        }
+
+        System.out.println(Arrays.toString(counts));
     }
 }
