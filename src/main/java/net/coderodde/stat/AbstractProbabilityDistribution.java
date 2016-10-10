@@ -15,7 +15,7 @@ import java.util.Random;
  * <tt>c</tt>.
  * 
  * @author Rodion "rodde" Efremov
- * @version 1.6 (Jun 11, 2016)
+ * @version 1.61 (Oct 10, 2016)
  */
 public abstract class AbstractProbabilityDistribution<E> {
 

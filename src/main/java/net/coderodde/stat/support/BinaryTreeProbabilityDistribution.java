@@ -14,12 +14,17 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  * and sampling an element.
  * 
  * @author Rodion "rodde" Efremov
- * @version 1.6 (Jun 11, 2016)
+ * @version 1.61 (Sep 30, 2016)
  * @param <E> the actual type of the elements stored in this distribution.
  */
 public class BinaryTreeProbabilityDistribution<E>
 extends AbstractProbabilityDistribution<E> {
 
+    /**
+     * This inner static class implements a tree node.
+     * 
+     * @param <E> the actual type of the elements being sampled.
+     */
     private static final class Node<E> {
 
         /**
@@ -164,11 +169,6 @@ extends AbstractProbabilityDistribution<E> {
     private Node<E> root;
     
     /**
-     * Caches the number of elements stored in this probability distribution.
-     */
-    private int size;
-
-    /**
      * Constructs this probability distribution using a default random number
      * generator.
      */
@@ -192,16 +192,18 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public boolean addElement(E element, double weight) {
         checkWeight(weight);
-
-        if (map.containsKey(element)) {
-            return false;
+        Node<E> node = map.get(element);
+        
+        if (node == null) {
+            node = new Node<>(element, weight);
+            insert(node);
+            map.put(element, node);
+        } else {
+            node.setWeight(node.getWeight() + weight);
+            updateMetadata(node, weight, 0);
         }
-
-        Node<E> newnode = new Node<>(element, weight);
-        insert(newnode);
-        size++;
+        
         totalWeight += weight;
-        map.put(element, newnode);
         return true;
     }
 
@@ -218,8 +220,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public E sampleElement() {
-        checkNotEmpty(size);
-
+        checkNotEmpty(map.size());
         double value = totalWeight * random.nextDouble();
         Node<E> node = root;
 
@@ -240,14 +241,13 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean removeElement(E element) {
-        Node<E> node = map.get(element);
+        Node<E> node = map.remove(element);
 
         if (node == null) {
             return false;
         }
 
         delete(node);
-        size--;
         totalWeight -= node.getWeight();
         return true;
     }
@@ -258,7 +258,7 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public void clear() {
         root = null;
-        size = 0;
+        map.clear();
         totalWeight = 0.0;
     }
      
@@ -267,7 +267,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean isEmpty() {
-        return size == 0;
+        return map.isEmpty();
     }
 
     /**
@@ -275,7 +275,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public int size() {
-        return size;
+        return map.size();
     }
 
     /**

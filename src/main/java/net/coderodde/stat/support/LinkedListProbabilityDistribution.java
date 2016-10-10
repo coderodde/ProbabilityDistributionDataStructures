@@ -25,7 +25,7 @@ import net.coderodde.stat.AbstractProbabilityDistribution;
  *            distribution.
  * 
  * @author Rodion "rodde" Efremov
- * @version 1.6 (Jun 11, 2016)
+ * @version 1.61 (Sep 30, 2016)
  */
 public class LinkedListProbabilityDistribution<E>
 extends AbstractProbabilityDistribution<E> {
@@ -33,7 +33,7 @@ extends AbstractProbabilityDistribution<E> {
     private static final class LinkedListNode<E> {
 
         private final E element;
-        private final double weight;
+        private double weight;
         private LinkedListNode<E> prev;
         private LinkedListNode<E> next;
 
@@ -48,6 +48,10 @@ extends AbstractProbabilityDistribution<E> {
 
         double getWeight() {
             return weight;
+        }
+        
+        void setWeight(double weight) {
+            this.weight = weight;
         }
 
         LinkedListNode<E> getPreviousLinkedListNode() {
@@ -81,12 +85,6 @@ extends AbstractProbabilityDistribution<E> {
      * Stores the very last linked list node in this probability distribution.
      */
     private LinkedListNode<E> linkedListTail;
-
-    /**
-     * 
-     * Stores the number of elements stored in this probability distribution.
-     */
-    private int size;
     
     /**
      * Construct a new probability distribution. 
@@ -111,24 +109,24 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public boolean addElement(E element, double weight) {
         checkWeight(weight);
-
-        if (map.containsKey(element)) {
-            return false;
-        }
-
-        LinkedListNode<E> newnode = new LinkedListNode<>(element, weight);
-
-        if (linkedListHead == null) {
-            linkedListHead = newnode;
-            linkedListTail = newnode;
+        LinkedListNode<E> node = map.get(element);
+        
+        if (node == null) {
+            node = new LinkedListNode<>(element, weight);
+            
+            if (linkedListHead == null) {
+                linkedListHead = node;
+            } else {
+                linkedListTail.next = node;
+                node.prev = linkedListTail;
+            }
+            
+            linkedListTail = node;
+            map.put(element, node);
         } else {
-            linkedListTail.setNextLinkedListNode(newnode);
-            newnode.setPreviousLinkedListNode(linkedListTail);
-            linkedListTail = newnode;
+            node.setWeight(node.getWeight() + weight);
         }
-
-        map.put(element, newnode);
-        size++;
+        
         totalWeight += weight;
         return true;
     }
@@ -138,7 +136,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public E sampleElement() {
-        checkNotEmpty(size);
+        checkNotEmpty(map.size());
         double value = random.nextDouble() * totalWeight;
 
         for (LinkedListNode<E> node = linkedListHead;
@@ -167,14 +165,12 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean removeElement(E element) {
-        LinkedListNode<E> node = map.get(element);
+        LinkedListNode<E> node = map.remove(element);
 
         if (node == null) {
             return false;
         }
 
-        map.remove(element);
-        size--;
         totalWeight -= node.getWeight();
         unlink(node);
         return true;
@@ -185,7 +181,6 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
-        size = 0;
         totalWeight = 0.0;
         map.clear();
         linkedListHead = null;
@@ -197,7 +192,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean isEmpty() {
-        return size == 0;
+        return map.isEmpty();
     }
 
     /**
@@ -205,7 +200,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public int size() {
-        return size;
+        return map.size();
     }
 
     private void unlink(LinkedListNode<E> node) {

@@ -2,22 +2,21 @@ package net.coderodde.stat.support;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 
 /**
  * This class implements a probability distribution relying on an array of 
  * elements. The running times are as follows:
  * 
- * <table>
- * <tr><td>Method</td>  <td>Complexity</td></tr>
+ * <table style="border: 1px solid black;">
+ * <tr style="border: 1px solid black;"><td>Method</td>  <td>Complexity</td></tr>
  * <tr><td><tt>addElement   </tt> </td>  <td>amortized constant time,</td></tr>
- * <tr><td><tt>sampleElement</tt> </td>  <td><tt>O(n)</tt>,</td></tr>
- * <tr><td><tt>removeElement</tt> </td>  <td><tt>O(n)</tt>.</td></tr>
+ * <tr><td><tt>sampleElement</tt> </td>  <td><tt>worst case O(n)</tt>,</td></tr>
+ * <tr><td><tt>removeElement</tt> </td>  <td><tt>worst case O(n)</tt>.</td></tr>
  * </table>
  * 
  * @param <E> the actual type of the elements stored in this probability 
@@ -44,7 +43,7 @@ extends AbstractProbabilityDistribution<E> {
         /**
          * The weight assigned to the {@code element}.
          */
-        private final double weight;
+        private double weight;
         
         Entry(E element, double weight) {
             this.element = element;
@@ -58,6 +57,10 @@ extends AbstractProbabilityDistribution<E> {
         double getWeight() {
             return weight;
         }
+        
+        void setWeight(double weight) {
+            this.weight = weight;
+        }
     }
     
     /**
@@ -66,10 +69,11 @@ extends AbstractProbabilityDistribution<E> {
     private final List<Entry<E>> storage = new ArrayList<>();
     
     /**
-     * The set keeping track of all entries currently in this distribution.
+     * This map maps each element in this probability distribution to its 
+     * respective entry object.
      */
-    private final Set<E> filterSet = new HashSet<>();
-
+    private final Map<E, Entry<E>> map = new HashMap<>();
+    
     public ArrayProbabilityDistribution() {
         this(new Random());
     }
@@ -84,15 +88,17 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public boolean addElement(E element, double weight) {
         checkWeight(weight);
-
-        if (filterSet.contains(element)) {
-            // 'element' is already present in this probability distribution.
-            return false;
+        Entry<E> entry = map.get(element);
+        
+        if (entry != null) {
+            entry.setWeight(entry.getWeight() + weight);
+        } else {
+            entry = new Entry<>(element, weight);
+            map.put(element, entry);
+            storage.add(entry);
         }
-
-        storage.add(new Entry<>(element, weight));
+        
         totalWeight += weight;
-        filterSet.add(element);
         return true;
     }
 
@@ -124,11 +130,14 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean removeElement(E element) {
-        if (!filterSet.contains(element)) {
+        Entry<E> entry = map.remove(element);
+        
+        if (entry == null) {
             return false;
         }
-
-        totalWeight -= storage.remove(indexOf(element)).getWeight();
+        
+        totalWeight -= entry.getWeight();
+        storage.remove(entry);
         return true;
     }
 
@@ -137,6 +146,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
+        map.clear();
         storage.clear();
         totalWeight = 0.0;
     }
@@ -162,19 +172,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean contains(E element) {
-        return filterSet.contains(element);
-    }
-
-    private int indexOf(E element) {
-        for (int i = 0; i < storage.size(); ++i) {
-            E currentElement = storage.get(i).getElement();
-            
-            if (Objects.equals(currentElement, element)) {
-                return i;
-            }
-        }
-        
-        return -1;
+        return map.containsKey(element);
     }
     
     protected void checkNotEmpty() {

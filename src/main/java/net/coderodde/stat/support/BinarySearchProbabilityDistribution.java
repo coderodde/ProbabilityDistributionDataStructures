@@ -2,11 +2,11 @@ package net.coderodde.stat.support;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.Set;
 import net.coderodde.stat.AbstractProbabilityDistribution;
 
 /**
@@ -29,7 +29,7 @@ extends AbstractProbabilityDistribution<E> {
         
         private final E element;
         
-        private final double weight;
+        private double weight;
         
         private double accumulatedWeight;
         
@@ -47,6 +47,10 @@ extends AbstractProbabilityDistribution<E> {
             return weight;
         }
         
+        void setWeight(double weight) {
+            this.weight = weight;
+        }
+        
         double getAccumulatedWeight() {
             return accumulatedWeight;
         }
@@ -57,9 +61,10 @@ extends AbstractProbabilityDistribution<E> {
     }
     
     /**
-     * Holds all the elements currently stored in this probability distribution.
+     * This map maps each element stored in this probability distribution to its
+     * respective entry.
      */
-    private final Set<E> filterSet = new HashSet<>();
+    private final Map<E, Entry<E>> map = new HashMap<>();
     
     /**
      * Holds the actual distribution entries.
@@ -90,15 +95,19 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public boolean addElement(E element, double weight) {
         checkWeight(weight);
+        Entry<E> entry = map.get(element);
         
-        if (filterSet.contains(element)) {
-            return false;
+        if (entry == null) {
+            entry = new Entry<>(element, weight, totalWeight);
+            map.put(element, entry);
+            storage.add(entry);
+        } else {
+            for (int i = storage.indexOf(entry); i < storage.size(); ++i) {
+                storage.get(i).addAccumulatedWeight(weight);
+            }
         }
         
-        Entry<E> e = new Entry<>(element, weight, totalWeight);
-        storage.add(e);
         totalWeight += weight;
-        filterSet.add(element);
         return true;
     }
 
@@ -138,7 +147,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean contains(E element) {
-        return filterSet.contains(element);
+        return map.containsKey(element);
     }
 
     /**
@@ -146,21 +155,20 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public boolean removeElement(E element) {
-        if (!filterSet.contains(element)) {
+        Entry<E> entry = map.remove(element);
+        
+        if (entry == null) {
             return false;
         }
-
-        int index = indexOf(element);
-        double weight = storage.get(index).getWeight();
-        totalWeight -= weight;
-        int storageLength = storage.size();
         
-        for (int i = index + 1; i < storageLength; ++i) {
-            storage.get(i).addAccumulatedWeight(-weight);
+        int index = storage.indexOf(entry);
+        storage.remove(index);
+        
+        for (int i = index; i < storage.size(); ++i) {
+            storage.get(i).addAccumulatedWeight(-entry.getWeight());
         }
         
-        storage.remove(index);
-        filterSet.remove(element);
+        totalWeight -= entry.getWeight();
         return true;
     }
 
@@ -169,6 +177,7 @@ extends AbstractProbabilityDistribution<E> {
      */
     @Override
     public void clear() {
+        map.clear();
         storage.clear();
         totalWeight = 0.0;
     }
@@ -187,18 +196,6 @@ extends AbstractProbabilityDistribution<E> {
     @Override
     public int size() {
         return storage.size();
-    }
-
-    private int indexOf(E element) {
-        int storageLength = storage.size();
-        
-        for (int i = 0; i < storageLength; ++i) {
-            if (Objects.equals(element, storage.get(i).getElement())) {
-                return i;
-            }
-        }
-
-        return -1;
     }
     
     private void checkNotEmpty() {
